@@ -2,6 +2,7 @@ package com.whtc.employee.vo;
 
 import lombok.Data;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
@@ -10,7 +11,9 @@ import java.util.Map;
  * 封装所有仪表盘统计数据
  */
 @Data
-public class DashboardStatisticsVO {
+public class DashboardStatisticsVO implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /**
      * 员工概览统计
@@ -41,7 +44,8 @@ public class DashboardStatisticsVO {
      * 员工概览统计内部类
      */
     @Data
-    public static class EmployeeOverviewVO {
+    public static class EmployeeOverviewVO implements Serializable {
+        private static final long serialVersionUID = 1L;
         /**
          * 员工总数
          */
@@ -67,7 +71,8 @@ public class DashboardStatisticsVO {
      * 部门分布统计内部类
      */
     @Data
-    public static class DeptDistributionVO {
+    public static class DeptDistributionVO implements Serializable {
+        private static final long serialVersionUID = 1L;
         /**
          * 部门ID
          */
@@ -88,14 +93,15 @@ public class DashboardStatisticsVO {
      * 性别比例统计内部类
      */
     @Data
-    public static class GenderDistributionVO {
+    public static class GenderDistributionVO implements Serializable {
+        private static final long serialVersionUID = 1L;
         /**
          * 男员工数（gender=1）
          */
         private Long maleCount;
 
         /**
-         * 女员工数（gender=2）
+         * 女员工数（gender=0或2，0是前端表单使用的值）
          */
         private Long femaleCount;
     }

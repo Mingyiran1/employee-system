@@ -12,6 +12,10 @@
         text-color="#bfcbd9"
         active-text-color="#409EFF"
       >
+        <el-menu-item index="/dashboard">
+          <el-icon><DataLine /></el-icon>
+          <span>数据仪表盘</span>
+        </el-menu-item>
         <el-menu-item index="/employee">
           <el-icon><User /></el-icon>
           <span>员工管理</span>
@@ -73,7 +77,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Management, User, OfficeBuilding, School, DocumentChecked, UserFilled, ArrowDown, Bell, SwitchButton } from '@element-plus/icons-vue'
+import { Management, User, OfficeBuilding, School, DocumentChecked, UserFilled, ArrowDown, Bell, SwitchButton, DataLine } from '@element-plus/icons-vue'
 import { getUnreadCount } from '@/api/message'
 
 const router = useRouter()

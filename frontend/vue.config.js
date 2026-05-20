@@ -4,6 +4,9 @@ module.exports = defineConfig({
   transpileDependencies: true,
   devServer: {
     port: 3000,
+    client: {
+      overlay: false
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:8080',

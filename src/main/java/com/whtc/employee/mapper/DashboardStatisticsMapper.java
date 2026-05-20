@@ -74,27 +74,40 @@ public interface DashboardStatisticsMapper {
 
     /**
      * 获取性别比例统计
+     * gender=1为男，gender=0或2为女（0是前端表单使用的值）
      *
      * @return 性别分布VO
      */
     @Select("SELECT " +
-            "SUM(CASE WHEN gender = 1 THEN 1 ELSE 0 END) as maleCount, " +
-            "SUM(CASE WHEN gender = 2 THEN 1 ELSE 0 END) as femaleCount " +
+            "COALESCE(SUM(CASE WHEN gender = 1 THEN 1 ELSE 0 END), 0) as maleCount, " +
+            "COALESCE(SUM(CASE WHEN gender = 0 OR gender = 2 THEN 1 ELSE 0 END), 0) as femaleCount " +
             "FROM employee WHERE is_deleted = 0")
     DashboardStatisticsVO.GenderDistributionVO getGenderDistribution();
 
     /**
      * 获取入职趋势统计（最近12个月，每个月的入职人数）
      *
-     * @param startDate 开始日期（12个月前）
      * @return 入职趋势列表，格式：月份和人数
      */
     @Select("SELECT DATE_FORMAT(entry_date, '%Y-%m') as month, COUNT(*) as count " +
             "FROM employee WHERE is_deleted = 0 " +
-            "AND entry_date >= #{startDate} " +
+            "AND entry_date IS NOT NULL " +
+            "AND entry_date >= DATE_SUB(DATE_FORMAT(CURDATE(), '%Y-%m-01'), INTERVAL 11 MONTH) " +
             "GROUP BY DATE_FORMAT(entry_date, '%Y-%m') " +
             "ORDER BY month ASC")
-    List<Map<String, Object>> getEntryTrend(@Param("startDate") LocalDate startDate);
+    List<Map<String, Object>> getEntryTrend();
+
+    /**
+     * 调试：检查entry_date为NULL的记录数
+     */
+    @Select("SELECT COUNT(*) FROM employee WHERE is_deleted = 0 AND entry_date IS NULL")
+    Long getNullEntryDateCount();
+
+    /**
+     * 调试：获取所有entry_date值
+     */
+    @Select("SELECT entry_date FROM employee WHERE is_deleted = 0 LIMIT 5")
+    List<String> getSampleEntryDates();
 
     /**
      * 获取待审批的审批记录数

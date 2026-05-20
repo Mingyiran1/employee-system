@@ -17,6 +17,7 @@ import com.whtc.employee.service.EmployeeService;
 import com.whtc.employee.vo.EmployeeVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -70,6 +71,7 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
     }
 
     @Override
+    @CacheEvict(value = {"dashboard:all", "dashboard:overview", "dashboard:dept", "dashboard:trend", "dashboard:gender"}, allEntries = true)
     public void save(EmployeeDTO employeeDTO) {
         Employee employee = new Employee();
         BeanUtils.copyProperties(employeeDTO, employee);
@@ -86,6 +88,7 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
     }
 
     @Override
+    @CacheEvict(value = {"dashboard:all", "dashboard:overview", "dashboard:dept", "dashboard:trend", "dashboard:gender"}, allEntries = true)
     public void update(EmployeeDTO employeeDTO) {
         Employee employee = new Employee();
         BeanUtils.copyProperties(employeeDTO, employee);
@@ -105,11 +108,13 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
     }
 
     @Override
+    @CacheEvict(value = {"dashboard:all", "dashboard:overview", "dashboard:dept", "dashboard:trend", "dashboard:gender"}, allEntries = true)
     public void deleteById(Long id) {
         this.removeById(id);
     }
 
     @Override
+    @CacheEvict(value = {"dashboard:all", "dashboard:overview", "dashboard:dept", "dashboard:trend", "dashboard:gender"}, allEntries = true)
     public void deleteByIds(List<Long> ids) {
         this.removeByIds(ids);
     }

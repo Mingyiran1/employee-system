@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/Login.vue'
 import Layout from '../views/Layout.vue'
+import Dashboard from '../views/Dashboard.vue'
 import Employee from '../views/Employee.vue'
 import Supplier from '../views/Supplier.vue'
 import Department from '../views/Department.vue'
@@ -16,8 +17,14 @@ const routes = [
     path: '/',
     name: 'Layout',
     component: Layout,
-    redirect: '/employee',
+    redirect: '/dashboard',
     children: [
+      {
+        path: 'dashboard',
+        name: 'Dashboard',
+        component: Dashboard,
+        meta: { title: '数据仪表盘' }
+      },
       {
         path: 'employee',
         name: 'Employee',

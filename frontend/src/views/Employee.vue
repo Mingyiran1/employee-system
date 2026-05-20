@@ -49,7 +49,7 @@
         <el-table-column prop="name" label="姓名" width="100" />
         <el-table-column prop="gender" label="性别" width="80">
           <template #default="{ row }">
-            <el-tag :type="row.gender === 1 ? '' : 'danger'">
+            <el-tag :type="row.gender === 1 ? 'primary' : 'danger'">
               {{ row.gender === 1 ? '男' : '女' }}
             </el-tag>
           </template>

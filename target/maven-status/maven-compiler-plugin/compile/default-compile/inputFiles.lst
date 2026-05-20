@@ -10,6 +10,7 @@ C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\config\RedisConfiguration.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\exception\LoginFailedException.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\service\impl\DepartmentServiceImpl.java
+C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\mapper\DashboardStatisticsMapper.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\config\MyBatisPlusConfig.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\entity\SysUser.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\controller\TestController.java
@@ -29,11 +30,13 @@ C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\interceptor\JwtTokenInterceptor.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\entity\Department.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\mapper\SysMessageMapper.java
+C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\service\DashboardService.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\EmployeeSystemApplication.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\mapper\ApprovalProcessMapper.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\controller\admin\SupplierController.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\service\impl\SupplierServiceImpl.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\enums\MaskingType.java
+C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\service\impl\DashboardServiceImpl.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\properties\JwtProperties.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\exception\BaseException.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\aspect\DataScopeAspect.java
@@ -43,6 +46,7 @@ C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\dto\EmployeePageQueryDTO.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\controller\admin\ApprovalController.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\mapper\ApprovalNodeMapper.java
+C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\vo\DashboardStatisticsVO.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\entity\ApprovalProcess.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\annotation\DataScope.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\mapper\SysRoleDeptMapper.java
@@ -53,6 +57,7 @@ C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\entity\SysMessage.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\mapper\SupplierMapper.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\dto\EmployeeDTO.java
+C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\controller\admin\DashboardController.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\dto\DataScopeContext.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\service\impl\MessageServiceImpl.java
 C:\Users\lucky\IdeaProjects\sky-employee-system\src\main\java\com\whtc\employee\entity\Supplier.java
