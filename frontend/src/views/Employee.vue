@@ -66,10 +66,18 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link :icon="Edit" @click="handleEdit(row)">编辑</el-button>
             <el-button type="danger" link :icon="Delete" @click="handleDelete(row)">删除</el-button>
+            <el-button
+              type="success"
+              link
+              :icon="CircleCheck"
+              @click="handleApplyApproval(row)"
+            >
+              申请审批
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -156,8 +164,9 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, Plus, Delete, Edit } from '@element-plus/icons-vue'
-import { getEmployeePage, addEmployee, updateEmployee, deleteEmployee, deleteEmployeeBatch } from '@/api/employee'
+import { Search, Refresh, Plus, Delete, Edit, CircleCheck } from '@element-plus/icons-vue'
+import { getEmployeePage, addEmployee, updateEmployee, deleteEmployee, deleteEmployeeBatch, getEmployeeListAll } from '@/api/employee'
+import { startApproval, getApprovalStatus } from '@/api/approval'
 import { getDepartmentList } from '@/api/department'
 import { PHONE, PHONE_MESSAGE, EMAIL, EMAIL_MESSAGE, ID_CARD, ID_CARD_MESSAGE } from '@/utils/regex'
 
@@ -287,6 +296,40 @@ const handleDelete = (row) => {
     ElMessage.success('删除成功')
     fetchData()
   })
+}
+
+// 申请入职审批
+const handleApplyApproval = async (row) => {
+  try {
+    // 检查是否已有进行中的审批
+    const checkRes = await getApprovalStatus('EMPLOYEE_ENTRY', row.id)
+    if (checkRes.data && checkRes.data.approvalStatus === 0) {
+      ElMessage.warning('该员工已有进行中的审批，请勿重复提交')
+      return
+    }
+
+    await ElMessageBox.confirm(
+      `确定要为【${row.name}】发起入职审批申请吗？`,
+      '确认发起审批',
+      {
+        confirmButtonText: '确认发起',
+        cancelButtonText: '取消',
+        type: 'info'
+      }
+    )
+
+    await startApproval({
+      businessType: 'EMPLOYEE_ENTRY',
+      businessId: row.id
+    })
+
+    ElMessage.success('入职申请已提交，等待审批')
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('发起审批失败', error)
+      ElMessage.error(error.response?.data?.message || '发起审批失败')
+    }
+  }
 }
 
 // 批量删除

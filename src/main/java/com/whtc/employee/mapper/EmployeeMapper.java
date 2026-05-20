@@ -32,4 +32,12 @@ public interface EmployeeMapper extends BaseMapper<Employee> {
      */
     @Select("SELECT user_id FROM employee WHERE id = #{employeeId} AND is_deleted = 0 LIMIT 1")
     Long selectUserIdByEmployeeId(Long employeeId);
+
+    /**
+     * 根据系统用户ID查询员工信息
+     */
+    @Select("SELECT e.*, d.name as dept_name FROM employee e " +
+            "LEFT JOIN department d ON e.dept_id = d.id " +
+            "WHERE e.user_id = #{userId} AND e.is_deleted = 0 LIMIT 1")
+    Employee selectByUserId(Long userId);
 }

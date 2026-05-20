@@ -45,3 +45,19 @@ export const deleteEmployeeBatch = (ids) => {
     params: { ids }
   })
 }
+
+// 获取所有员工列表（用于审批场景，不带数据权限限制）
+export const getEmployeeListAll = () => {
+  return request({
+    url: '/admin/employee/list-all',
+    method: 'get'
+  })
+}
+
+// 获取当前登录用户对应的员工信息
+export const getCurrentEmployee = () => {
+  return request({
+    url: '/admin/employee/current',
+    method: 'get'
+  })
+}

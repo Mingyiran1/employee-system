@@ -96,3 +96,4 @@ FROM employee WHERE is_deleted = 0 AND dept_id = 3;
 -- sunqi 市场专员(角色4, user_id=6): create_by=5的数据（孙七是赵六创建的，赵六sys_user.id=5）
 SELECT 'sunqi-市场专员(create_by=5)' AS role, COUNT(*) AS count
 FROM employee WHERE is_deleted = 0 AND create_by = 5;
+UPDATE sys_user SET managed_dept_id = 2 WHERE id = 3;

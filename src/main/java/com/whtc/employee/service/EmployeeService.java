@@ -41,4 +41,16 @@ public interface EmployeeService extends IService<Employee> {
      * 批量删除员工
      */
     void deleteByIds(List<Long> ids);
+
+    /**
+     * 获取所有员工列表（用于审批场景，不带数据权限限制）
+     */
+    List<EmployeeVO> listAllForApproval();
+
+    /**
+     * 根据系统用户ID获取员工信息
+     * @param userId 系统用户ID
+     * @return 员工信息，未找到返回null
+     */
+    EmployeeVO getByUserId(Long userId);
 }

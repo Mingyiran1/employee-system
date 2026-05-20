@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.whtc.employee.annotation.DataScope;
 import com.whtc.employee.common.PageResult;
 import com.whtc.employee.common.Result;
+import com.whtc.employee.context.BaseContext;
 import com.whtc.employee.dto.EmployeeDTO;
 import com.whtc.employee.dto.EmployeePageQueryDTO;
 import com.whtc.employee.entity.Employee;
+import com.whtc.employee.entity.SysUser;
 import com.whtc.employee.service.EmployeeService;
 import com.whtc.employee.vo.EmployeeVO;
 import lombok.extern.slf4j.Slf4j;
@@ -81,5 +83,32 @@ public class EmployeeController {
         log.info("批量删除员工，ids：{}", ids);
         employeeService.deleteByIds(ids);
         return Result.success();
+    }
+
+    /**
+     * 获取所有员工列表（用于审批场景，不带数据权限限制）
+     */
+    @GetMapping("/list-all")
+    public Result<java.util.List<EmployeeVO>> listAll() {
+        log.info("获取所有员工列表（审批用）");
+        java.util.List<EmployeeVO> list = employeeService.listAllForApproval();
+        return Result.success(list);
+    }
+
+    /**
+     * 获取当前登录用户对应的员工信息
+     */
+    @GetMapping("/current")
+    public Result<EmployeeVO> getCurrentEmployee() {
+        SysUser currentUser = BaseContext.getCurrentUser();
+        if (currentUser == null) {
+            return Result.error("用户未登录");
+        }
+        log.info("获取当前用户对应的员工信息，userId={}", currentUser.getId());
+        EmployeeVO employee = employeeService.getByUserId(currentUser.getId());
+        if (employee == null) {
+            return Result.error("未找到对应的员工信息");
+        }
+        return Result.success(employee);
     }
 }

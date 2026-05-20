@@ -84,7 +84,8 @@ const handleLogin = async () => {
     localStorage.setItem('user', JSON.stringify({
       id: res.data.id,
       username: res.data.userName,
-      realName: res.data.name
+      realName: res.data.name,
+      roleId: res.data.roleId
     }))
     ElMessage.success('登录成功')
     router.push('/')

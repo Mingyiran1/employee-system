@@ -30,6 +30,11 @@ public class SysUser {
      */
     private String roleCode;
 
+    /**
+     * 管辖部门ID（部门经理专用）
+     */
+    private Long managedDeptId;
+
     private Integer status;
 
     @TableField(fill = FieldFill.INSERT)

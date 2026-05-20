@@ -24,12 +24,21 @@
           <el-icon><School /></el-icon>
           <span>部门管理</span>
         </el-menu-item>
+        <el-menu-item index="/approval">
+          <el-icon><DocumentChecked /></el-icon>
+          <span>审批管理</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
 
     <el-container>
       <el-header class="header">
         <div class="header-right">
+          <!-- 消息通知铃铛 -->
+          <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="message-badge" type="danger">
+            <el-icon class="message-icon" @click="handleShowMessages"><Bell /></el-icon>
+          </el-badge>
+
           <el-dropdown @command="handleCommand">
             <span class="user-info">
               <el-icon><UserFilled /></el-icon>
@@ -38,7 +47,15 @@
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+                <el-dropdown-item command="messages">
+                  <el-icon><Bell /></el-icon>
+                  消息通知
+                  <el-badge v-if="unreadCount > 0" :value="unreadCount" type="danger" />
+                </el-dropdown-item>
+                <el-dropdown-item command="logout" divided>
+                  <el-icon><SwitchButton /></el-icon>
+                  退出登录
+                </el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -53,13 +70,39 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Management, User, OfficeBuilding, School, DocumentChecked, UserFilled, ArrowDown, Bell, SwitchButton } from '@element-plus/icons-vue'
+import { getUnreadCount } from '@/api/message'
 
 const router = useRouter()
 const userInfo = ref(JSON.parse(localStorage.getItem('user') || '{}'))
+const unreadCount = ref(0)
+let messageTimer = null
 
+// 获取未读消息数
+const fetchUnreadCount = async () => {
+  try {
+    const res = await getUnreadCount()
+    unreadCount.value = res.data || 0
+  } catch (error) {
+    console.error('获取未读消息失败', error)
+  }
+}
+
+// 显示消息列表（可以跳转到消息页面或显示下拉菜单）
+const handleShowMessages = () => {
+  // 这里可以显示消息下拉菜单或跳转到消息页面
+  ElMessage.info(`您有 ${unreadCount.value} 条未读消息`)
+  // 标记为已读后刷新
+  if (unreadCount.value > 0) {
+    // 可选：跳转到消息中心页面
+    // router.push('/messages')
+  }
+}
+
+// 下拉菜单处理
 const handleCommand = (command) => {
   if (command === 'logout') {
     ElMessageBox.confirm('确定要退出登录吗？', '提示', {
@@ -70,8 +113,23 @@ const handleCommand = (command) => {
       ElMessage.success('已退出登录')
       router.push('/login')
     })
+  } else if (command === 'messages') {
+    handleShowMessages()
   }
 }
+
+// 定期刷新未读消息数
+onMounted(() => {
+  fetchUnreadCount()
+  // 每30秒刷新一次
+  messageTimer = setInterval(fetchUnreadCount, 30000)
+})
+
+onUnmounted(() => {
+  if (messageTimer) {
+    clearInterval(messageTimer)
+  }
+})
 </script>
 
 <style scoped>
@@ -109,6 +167,23 @@ const handleCommand = (command) => {
 .header-right {
   display: flex;
   align-items: center;
+  gap: 20px;
+}
+
+/* 消息铃铛样式 */
+.message-badge {
+  cursor: pointer;
+}
+
+.message-icon {
+  font-size: 20px;
+  color: #606266;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.message-icon:hover {
+  color: #409EFF;
 }
 
 .user-info {

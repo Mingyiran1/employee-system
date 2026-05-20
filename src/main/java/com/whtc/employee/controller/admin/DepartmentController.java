@@ -3,6 +3,7 @@ package com.whtc.employee.controller.admin;
 import com.whtc.employee.common.Result;
 import com.whtc.employee.entity.Department;
 import com.whtc.employee.service.DepartmentService;
+import com.whtc.employee.vo.DeptTreeVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -55,5 +56,15 @@ public class DepartmentController {
         log.info("删除部门，id：{}", id);
         departmentService.removeById(id);
         return Result.success();
+    }
+
+    /**
+     * 获取部门树形结构（用于组织架构图）
+     */
+    @GetMapping("/tree")
+    public Result<List<DeptTreeVO>> getDeptTree() {
+        log.info("获取部门树形结构");
+        List<DeptTreeVO> tree = departmentService.getDeptTree();
+        return Result.success(tree);
     }
 }
