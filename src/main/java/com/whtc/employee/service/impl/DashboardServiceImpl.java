@@ -119,18 +119,72 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
-    @Cacheable(value = "dashboard:all", key = "'allStatistics'")
     public DashboardStatisticsVO getAllStatistics() {
         log.info("获取所有仪表盘统计数据");
 
         DashboardStatisticsVO statistics = new DashboardStatisticsVO();
-        statistics.setEmployeeOverview(getEmployeeOverview());
-        statistics.setDeptDistribution(getDeptDistribution());
-        statistics.setGenderDistribution(getGenderDistribution());
-        statistics.setEntryTrend(getEntryTrend());
-        statistics.setPendingApprovalCount(getPendingApprovalCount());
+        // 注意：直接调用本类的方法不会经过缓存代理，但因为各个方法都已被缓存，
+        // 所以实际查询时仍然会命中缓存。或者通过 ApplicationContext 获取代理对象来调用。
+        // 这里改为直接调用 mapper 方法，避免 JSON 序列化导致的类型转换问题
+        statistics.setEmployeeOverview(getEmployeeOverviewDirect());
+        statistics.setDeptDistribution(getDeptDistributionDirect());
+        statistics.setGenderDistribution(getGenderDistributionDirect());
+        statistics.setEntryTrend(getEntryTrendDirect());
+        statistics.setPendingApprovalCount(getPendingApprovalCountDirect());
 
         log.info("所有仪表盘统计数据获取完成");
         return statistics;
+    }
+
+    // 直接查询方法（供 getAllStatistics 使用，避免缓存代理问题）
+    private DashboardStatisticsVO.EmployeeOverviewVO getEmployeeOverviewDirect() {
+        LocalDateTime startOfMonth = LocalDate.now()
+                .with(TemporalAdjusters.firstDayOfMonth())
+                .atStartOfDay();
+        LocalDateTime endOfMonth = LocalDate.now()
+                .with(TemporalAdjusters.firstDayOfNextMonth())
+                .atStartOfDay();
+
+        DashboardStatisticsVO.EmployeeOverviewVO overview = new DashboardStatisticsVO.EmployeeOverviewVO();
+        overview.setTotalCount(dashboardStatisticsMapper.getTotalEmployeeCount());
+        overview.setNewThisMonthCount(dashboardStatisticsMapper.getNewEmployeeThisMonthCount(startOfMonth, endOfMonth));
+        overview.setResignedThisMonthCount(dashboardStatisticsMapper.getResignedEmployeeThisMonthCount(startOfMonth, endOfMonth));
+        overview.setActiveCount(dashboardStatisticsMapper.getActiveEmployeeCount());
+        return overview;
+    }
+
+    private List<DashboardStatisticsVO.DeptDistributionVO> getDeptDistributionDirect() {
+        return dashboardStatisticsMapper.getDeptDistribution();
+    }
+
+    private DashboardStatisticsVO.GenderDistributionVO getGenderDistributionDirect() {
+        return dashboardStatisticsMapper.getGenderDistribution();
+    }
+
+    private List<Map<String, Object>> getEntryTrendDirect() {
+        List<Map<String, Object>> dbResult = dashboardStatisticsMapper.getEntryTrend();
+        List<Map<String, Object>> filledResult = new ArrayList<>();
+        LocalDate now = LocalDate.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+
+        Map<String, Long> countMap = new HashMap<>();
+        for (Map<String, Object> item : dbResult) {
+            String month = (String) item.get("month");
+            Long count = ((Number) item.get("count")).longValue();
+            countMap.put(month, count);
+        }
+
+        for (int i = 11; i >= 0; i--) {
+            String month = now.minusMonths(i).format(formatter);
+            Map<String, Object> item = new HashMap<>();
+            item.put("month", month);
+            item.put("count", countMap.getOrDefault(month, 0L));
+            filledResult.add(item);
+        }
+        return filledResult;
+    }
+
+    private Long getPendingApprovalCountDirect() {
+        return dashboardStatisticsMapper.getPendingApprovalCount();
     }
 }

@@ -6,6 +6,7 @@ import Employee from '../views/Employee.vue'
 import Supplier from '../views/Supplier.vue'
 import Department from '../views/Department.vue'
 import Approval from '../views/Approval.vue'
+import Message from '../views/Message.vue'
 
 const routes = [
   {
@@ -48,6 +49,12 @@ const routes = [
         name: 'Approval',
         component: Approval,
         meta: { title: '审批管理' }
+      },
+      {
+        path: 'messages',
+        name: 'Message',
+        component: Message,
+        meta: { title: '消息通知' }
       }
     ]
   }

@@ -79,6 +79,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Management, User, OfficeBuilding, School, DocumentChecked, UserFilled, ArrowDown, Bell, SwitchButton, DataLine } from '@element-plus/icons-vue'
 import { getUnreadCount } from '@/api/message'
+import eventBus from '@/utils/eventBus'
 
 const router = useRouter()
 const userInfo = ref(JSON.parse(localStorage.getItem('user') || '{}'))
@@ -95,15 +96,9 @@ const fetchUnreadCount = async () => {
   }
 }
 
-// 显示消息列表（可以跳转到消息页面或显示下拉菜单）
+// 显示消息列表（跳转到消息页面）
 const handleShowMessages = () => {
-  // 这里可以显示消息下拉菜单或跳转到消息页面
-  ElMessage.info(`您有 ${unreadCount.value} 条未读消息`)
-  // 标记为已读后刷新
-  if (unreadCount.value > 0) {
-    // 可选：跳转到消息中心页面
-    // router.push('/messages')
-  }
+  router.push('/messages')
 }
 
 // 下拉菜单处理
@@ -127,12 +122,17 @@ onMounted(() => {
   fetchUnreadCount()
   // 每30秒刷新一次
   messageTimer = setInterval(fetchUnreadCount, 30000)
+
+  // 监听消息已读事件，立即刷新未读数
+  eventBus.on('message-read', fetchUnreadCount)
 })
 
 onUnmounted(() => {
   if (messageTimer) {
     clearInterval(messageTimer)
   }
+  // 移除事件监听
+  eventBus.off('message-read', fetchUnreadCount)
 })
 </script>
 
