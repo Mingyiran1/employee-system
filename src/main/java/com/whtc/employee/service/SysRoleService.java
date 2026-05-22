@@ -19,4 +19,9 @@ public interface SysRoleService extends IService<SysRole> {
      * 根据角色编码获取角色
      */
     SysRole getByCode(String code);
+
+    /**
+     * 根据ID删除角色（带缓存清除）
+     */
+    boolean removeRoleById(Long id);
 }

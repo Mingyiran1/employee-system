@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.whtc.employee.entity.SysRole;
 import com.whtc.employee.mapper.SysRoleMapper;
 import com.whtc.employee.service.SysRoleService;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -29,5 +30,22 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
         LambdaQueryWrapper<SysRole> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysRole::getCode, code);
         return this.getOne(wrapper);
+    }
+
+    @Override
+    @CacheEvict(value = "role", key = "'all'")
+    public boolean save(SysRole entity) {
+        return super.save(entity);
+    }
+
+    @Override
+    @CacheEvict(value = "role", key = "'all'")
+    public boolean updateById(SysRole entity) {
+        return super.updateById(entity);
+    }
+
+    @CacheEvict(value = "role", key = "'all'")
+    public boolean removeRoleById(Long id) {
+        return super.removeById(id);
     }
 }

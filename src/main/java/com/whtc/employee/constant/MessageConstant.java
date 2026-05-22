@@ -5,6 +5,11 @@ package com.whtc.employee.constant;
  */
 public class MessageConstant {
 
+    // 私有构造函数防止实例化
+    private MessageConstant() {
+        throw new AssertionError("常量类不能被实例化");
+    }
+
     public static final String LOGIN_FAILED = "登录失败，用户名或密码错误";
     public static final String ACCOUNT_NOT_FOUND = "账号不存在";
     public static final String ACCOUNT_LOCKED = "账号被锁定";

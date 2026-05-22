@@ -34,7 +34,23 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
         log.info("开始注册自定义拦截器...");
         registry.addInterceptor(jwtTokenInterceptor())
                 .addPathPatterns("/**")
-                .excludePathPatterns("/admin/auth/login", "/admin/auth/register", "/login");
+                .excludePathPatterns(
+                        "/admin/auth/login",
+                        "/admin/auth/register",
+                        "/login",
+                        "/api/user/login",
+                        "/api/auth/login",
+                        "/api/admin/auth/login",
+                        "/api/admin/auth/register",
+                        "/user/login",
+                        "/auth/login",
+                        "/test/**",
+                        "/error",
+                        "/swagger-ui/**",
+                        "/v3/api-docs/**",
+                        "/doc.html",
+                        "/webjars/**"
+                );
     }
 
     @Bean
@@ -49,9 +65,10 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("*")
+                .allowedOrigins("http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
+                .allowCredentials(true)
                 .maxAge(3600);
     }
 }

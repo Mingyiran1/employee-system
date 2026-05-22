@@ -18,12 +18,19 @@ spring:
 # JWT配置
 whtc:
   jwt:
-    # 设置jwt签名加密时使用的秘钥
-    admin-secret-key: wuhantongxiaoemployee2024secretkey
-    # 设置jwt过期时间
-    admin-ttl: 86400000
+    # 设置jwt签名加密时使用的秘钥（生产环境必须从环境变量设置）
+    # 密钥长度至少32字节（256位），建议使用随机生成的强密钥
+    admin-secret-key: ${JWT_SECRET_KEY:WhtcEmployeeSystemSecretKey2024ForSecureJWTTokenGen}
+    # 设置jwt过期时间（4小时）
+    admin-ttl: 14400000
     # 设置前端传递过来的令牌名称
     admin-token-name: token
+
+# 应用配置
+app:
+  export:
+    # 报表导出文件存储路径
+    path: ./temp/exports
 
 # MyBatis Plus 配置
 mybatis-plus:

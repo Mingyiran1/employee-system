@@ -55,9 +55,8 @@ public class DataMaskingSerializer extends JsonSerializer<String> implements Con
      */
     private boolean shouldSkipMasking() {
         try {
-            // 从ThreadLocal获取当前登录用户
-            com.whtc.employee.context.BaseContext baseContext = new com.whtc.employee.context.BaseContext();
-            com.whtc.employee.entity.SysUser currentUser = baseContext.getCurrentUser();
+            // 从ThreadLocal获取当前登录用户（使用静态方法）
+            com.whtc.employee.entity.SysUser currentUser = com.whtc.employee.context.BaseContext.getCurrentUser();
 
             if (currentUser == null) {
                 return false; // 未登录用户，脱敏

@@ -32,9 +32,14 @@
     <!-- 操作栏 -->
     <el-card class="table-card">
       <div class="toolbar">
-        <el-button type="primary" :icon="Plus" @click="handleAdd">新增员工</el-button>
-        <el-button type="danger" :icon="Delete" :disabled="!selectedIds.length" @click="handleBatchDelete">
-          批量删除
+        <div>
+          <el-button type="primary" :icon="Plus" @click="handleAdd">新增员工</el-button>
+          <el-button type="danger" :icon="Delete" :disabled="!selectedIds.length" @click="handleBatchDelete">
+            批量删除
+          </el-button>
+        </div>
+        <el-button type="success" :icon="Download" @click="handleExportClick">
+          导出报表
         </el-button>
       </div>
 
@@ -94,6 +99,17 @@
         @current-change="handlePageChange"
       />
     </el-card>
+
+    <!-- 导出弹窗 -->
+    <ExportDialog
+      v-model="exportDialogVisible"
+      :current-page-count="tableData.length"
+      :total-count="pageInfo.total"
+      :page="pageInfo.page"
+      :size="pageInfo.size"
+      :search-params="searchForm"
+      @success="fetchData"
+    />
 
     <!-- 新增/编辑弹窗 -->
     <el-dialog
@@ -164,8 +180,9 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, Plus, Delete, Edit, CircleCheck } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Delete, Edit, CircleCheck, Download } from '@element-plus/icons-vue'
 import { getEmployeePage, addEmployee, updateEmployee, deleteEmployee, deleteEmployeeBatch, getEmployeeListAll } from '@/api/employee'
+import ExportDialog from './components/ExportDialog.vue'
 import { startApproval, getApprovalStatus } from '@/api/approval'
 import { getDepartmentList } from '@/api/department'
 import { PHONE, PHONE_MESSAGE, EMAIL, EMAIL_MESSAGE, ID_CARD, ID_CARD_MESSAGE } from '@/utils/regex'
@@ -193,6 +210,7 @@ const departmentList = ref([])
 // 弹窗
 const dialogVisible = ref(false)
 const dialogTitle = ref('新增员工')
+const exportDialogVisible = ref(false)
 const formRef = ref()
 const submitLoading = ref(false)
 const isEdit = ref(false)
@@ -341,6 +359,15 @@ const handleBatchDelete = () => {
     ElMessage.success('批量删除成功')
     fetchData()
   })
+}
+
+// 点击导出按钮
+const handleExportClick = () => {
+  if (pageInfo.total === 0) {
+    ElMessage.warning('没有可导出的数据')
+    return
+  }
+  exportDialogVisible.value = true
 }
 
 // 提交

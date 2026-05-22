@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.whtc.employee.common.PageResult;
 import com.whtc.employee.entity.SysMessage;
 
+import java.util.List;
+
 /**
  * 消息通知服务接口
  */
@@ -49,4 +51,14 @@ public interface MessageService extends IService<SysMessage> {
      * @return 更新的条数
      */
     int markAllAsRead(Long userId);
+
+    /**
+     * 批量发送消息给多个用户
+     * @param userIds 接收人ID列表
+     * @param title 标题
+     * @param content 内容
+     * @param type 消息类型
+     * @return 成功发送的数量
+     */
+    int batchSendMessage(List<Long> userIds, String title, String content, Integer type);
 }

@@ -1,13 +1,11 @@
 package com.whtc.employee.controller.admin;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.whtc.employee.annotation.DataScope;
 import com.whtc.employee.common.PageResult;
 import com.whtc.employee.common.Result;
 import com.whtc.employee.context.BaseContext;
 import com.whtc.employee.dto.EmployeeDTO;
 import com.whtc.employee.dto.EmployeePageQueryDTO;
-import com.whtc.employee.entity.Employee;
 import com.whtc.employee.entity.SysUser;
 import com.whtc.employee.service.EmployeeService;
 import com.whtc.employee.vo.EmployeeVO;
@@ -111,4 +109,5 @@ public class EmployeeController {
         }
         return Result.success(employee);
     }
+
 }

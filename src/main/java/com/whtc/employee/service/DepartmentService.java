@@ -22,4 +22,17 @@ public interface DepartmentService extends IService<Department> {
      * @return 部门树列表
      */
     List<DeptTreeVO> getDeptTree();
+
+    /**
+     * 删除部门（带关联校验）
+     * @param id 部门ID
+     */
+    void deleteById(Long id);
+
+    /**
+     * 获取部门层级
+     * @param deptId 部门ID
+     * @return 部门层级（根部门为1）
+     */
+    int getDeptLevel(Long deptId);
 }

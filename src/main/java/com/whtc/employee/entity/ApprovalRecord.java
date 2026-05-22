@@ -39,4 +39,10 @@ public class ApprovalRecord {
     @TableLogic
     @TableField("is_deleted")
     private Integer isDeleted;
+
+    /**
+     * 乐观锁版本号
+     */
+    @Version
+    private Integer version;
 }

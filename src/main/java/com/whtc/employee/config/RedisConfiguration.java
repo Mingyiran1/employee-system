@@ -33,6 +33,13 @@ public class RedisConfiguration {
         redisTemplate.setConnectionFactory(redisConnectionFactory);
         //设置redis key的序列化器
         redisTemplate.setKeySerializer(new StringRedisSerializer());
+        //设置redis value的序列化器
+        redisTemplate.setValueSerializer(new GenericJackson2JsonRedisSerializer());
+        //设置hash key和value的序列化器
+        redisTemplate.setHashKeySerializer(new StringRedisSerializer());
+        redisTemplate.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
+        //初始化序列化器
+        redisTemplate.afterPropertiesSet();
         return redisTemplate;
     }
 

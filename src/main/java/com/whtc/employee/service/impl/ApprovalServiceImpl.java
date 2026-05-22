@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.whtc.employee.common.PageResult;
 import com.whtc.employee.entity.*;
+import com.whtc.employee.enums.ApprovalStatus;
 import com.whtc.employee.mapper.*;
 import com.whtc.employee.service.ApprovalService;
 import com.whtc.employee.service.MessageService;
@@ -12,11 +13,14 @@ import com.whtc.employee.vo.ApprovalDetailVO;
 import com.whtc.employee.vo.ApprovalHistoryVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -103,13 +107,13 @@ public class ApprovalServiceImpl extends ServiceImpl<ApprovalRecordMapper, Appro
         record.setCurrentNodeId(firstNode.getId());
         record.setCurrentRoleId(firstNode.getRoleId());
         record.setApplicantId(applicantId);
-        record.setApprovalStatus(0); // 待审批
+        record.setApprovalStatus(ApprovalStatus.PENDING.getCode());
 
         this.save(record);
         log.info("审批记录创建成功：recordId={}", record.getId());
 
-        // 5. 发送消息通知给审批人
-        sendApprovalNotification(record, firstNode, employee, true);
+        // 5. 异步发送消息通知给审批人
+        sendApprovalNotificationAsync(record, firstNode, employee, ApprovalStatus.PENDING.getCode());
 
         return record.getId();
     }
@@ -170,7 +174,7 @@ public class ApprovalServiceImpl extends ServiceImpl<ApprovalRecordMapper, Appro
         LambdaQueryWrapper<ApprovalRecord> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ApprovalRecord::getBusinessType, businessType)
                 .eq(ApprovalRecord::getBusinessId, businessId)
-                .eq(ApprovalRecord::getApprovalStatus, 0) // 待审批
+                .eq(ApprovalRecord::getApprovalStatus, ApprovalStatus.PENDING.getCode())
                 .eq(ApprovalRecord::getIsDeleted, 0)
                 .last("LIMIT 1");
         return this.getOne(wrapper);
@@ -187,23 +191,29 @@ public class ApprovalServiceImpl extends ServiceImpl<ApprovalRecordMapper, Appro
             throw new RuntimeException("审批记录不存在");
         }
 
-        if (record.getApprovalStatus() != 0) {
+        // 2. 检查审批状态是否允许操作（必须为待审批）
+        if (!ApprovalStatus.isPending(record.getApprovalStatus())) {
             throw new RuntimeException("该审批已处理，请勿重复操作");
         }
 
-        // 2. 验证审批人权限
+        // 3. 验证审批人权限
         SysUser approver = sysUserMapper.selectById(approverId);
         if (approver == null) {
             throw new RuntimeException("审批人不存在");
         }
 
-        // 3. 查询当前节点
+        // 4. 权限校验：检查用户是否有权限审批此记录
+        if (!canUserApprove(approver, record)) {
+            throw new RuntimeException("您没有权限审批此申请");
+        }
+
+        // 5. 查询当前节点
         ApprovalNode currentNode = approvalNodeMapper.selectById(record.getCurrentNodeId());
         if (currentNode == null) {
             throw new RuntimeException("审批节点不存在");
         }
 
-        // 4. 创建审批历史
+        // 6. 创建审批历史（在更新记录之前创建，确保历史记录准确）
         ApprovalHistory history = new ApprovalHistory();
         history.setRecordId(recordId);
         history.setNodeId(currentNode.getId());
@@ -213,51 +223,63 @@ public class ApprovalServiceImpl extends ServiceImpl<ApprovalRecordMapper, Appro
         history.setApprovalTime(LocalDateTime.now());
         approvalHistoryMapper.insert(history);
 
-        // 5. 查询员工信息
+        // 7. 查询员工信息
         Employee employee = employeeMapper.selectById(record.getBusinessId());
         String employeeName = employee != null ? employee.getName() : "未知";
 
-        // 6. 更新审批记录状态
-        record.setApprovalStatus(approvalStatus);
+        // 8. 处理审批结果
+        processApprovalResult(record, approverId, approvalStatus, currentNode, employee);
+
+        // 9. 更新审批记录（乐观锁会自动检查version）
+        boolean updated = this.updateById(record);
+        if (!updated) {
+            throw new RuntimeException("审批记录已被其他用户修改，请刷新后重试");
+        }
+
+        // 10. 异步发送通知消息（事务提交后发送）
+        sendApprovalNotificationAsync(record, currentNode, employee, approvalStatus);
+    }
+
+    /**
+     * 处理审批结果，更新审批记录状态
+     */
+    private void processApprovalResult(ApprovalRecord record, Long approverId, Integer approvalStatus,
+                                       ApprovalNode currentNode, Employee employee) {
+        // 设置审批人
         record.setApproverId(approverId);
 
-        if (approvalStatus == 1) {
+        if (ApprovalStatus.APPROVED.getCode().equals(approvalStatus)) {
             // 通过：查找下一个节点
             Long deptId = employee != null ? employee.getDeptId() : null;
-            ApprovalNode nextNode = getNextNode(record.getProcessId(), currentNode.getNodeOrder(), deptId);
+            ApprovalNode nextNode = getNextNodeWithCycleCheck(record.getProcessId(), currentNode.getNodeOrder(), deptId, new HashSet<>());
 
             if (nextNode != null) {
                 // 进入下一节点
                 record.setCurrentNodeId(nextNode.getId());
                 record.setCurrentRoleId(nextNode.getRoleId());
-                record.setApprovalStatus(0); // 重置为待审批
-                record.setApproverId(null); // 清除审批人
+                record.setApprovalStatus(ApprovalStatus.PENDING.getCode());
+                record.setApproverId(null);
                 log.info("进入下一审批节点：nodeId={}", nextNode.getId());
-
-                // 发送消息通知给下一审批人
-                sendApprovalNotification(record, nextNode, employee, true);
             } else {
                 // 没有下一节点，审批完成
-                log.info("审批流程完成：recordId={}", recordId);
+                record.setApprovalStatus(ApprovalStatus.APPROVED.getCode());
+                log.info("审批流程完成：recordId={}", record.getId());
                 updateBusinessStatus(record);
-
-                // 发送消息通知给申请人
-                sendApprovalNotification(record, null, employee, false);
             }
-        } else {
+        } else if (ApprovalStatus.REJECTED.getCode().equals(approvalStatus)) {
             // 拒绝：流程结束
-            log.info("审批已拒绝：recordId={}", recordId);
-            // 发送消息通知给申请人
-            sendApprovalNotification(record, null, employee, false);
+            record.setApprovalStatus(ApprovalStatus.REJECTED.getCode());
+            log.info("审批已拒绝：recordId={}", record.getId());
+        } else {
+            throw new RuntimeException("非法的审批状态: " + approvalStatus);
         }
-
-        this.updateById(record);
     }
 
     /**
-     * 获取下一个审批节点
+     * 获取下一个审批节点（带闭环检测）
+     * @param visitedNodeIds 已访问的节点ID集合，用于检测循环
      */
-    private ApprovalNode getNextNode(Long processId, Integer currentOrder, Long deptId) {
+    private ApprovalNode getNextNodeWithCycleCheck(Long processId, Integer currentOrder, Long deptId, Set<Long> visitedNodeIds) {
         LambdaQueryWrapper<ApprovalNode> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ApprovalNode::getProcessId, processId)
                 .eq(ApprovalNode::getStatus, 1)
@@ -265,14 +287,49 @@ public class ApprovalServiceImpl extends ServiceImpl<ApprovalRecordMapper, Appro
                 .and(w -> w.eq(ApprovalNode::getDeptId, deptId).or().isNull(ApprovalNode::getDeptId))
                 .orderByAsc(ApprovalNode::getNodeOrder)
                 .last("LIMIT 1");
-        return approvalNodeMapper.selectOne(wrapper);
+        ApprovalNode nextNode = approvalNodeMapper.selectOne(wrapper);
+
+        if (nextNode != null) {
+            // 闭环检测：如果节点已访问过，说明存在循环
+            if (visitedNodeIds.contains(nextNode.getId())) {
+                throw new RuntimeException("审批流程配置错误：检测到审批链闭环，请联系管理员检查流程配置");
+            }
+            // 将当前节点添加到已访问集合
+            visitedNodeIds.add(nextNode.getId());
+        }
+
+        return nextNode;
+    }
+
+    /**
+     * 获取下一个审批节点（兼容旧方法）
+     */
+    private ApprovalNode getNextNode(Long processId, Integer currentOrder, Long deptId) {
+        return getNextNodeWithCycleCheck(processId, currentOrder, deptId, new HashSet<>());
+    }
+
+    /**
+     * 异步发送审批通知消息
+     * 使用@Async确保事务提交后再发送消息
+     */
+    @Async
+    public void sendApprovalNotificationAsync(ApprovalRecord record, ApprovalNode node, Employee employee, Integer approvalStatus) {
+        // 根据审批状态确定通知对象
+        if (ApprovalStatus.APPROVED.getCode().equals(approvalStatus) || ApprovalStatus.REJECTED.getCode().equals(approvalStatus)) {
+            // 审批完成，通知申请人
+            sendApprovalNotification(record, null, employee, false, approvalStatus);
+        } else {
+            // 进入下一节点，通知审批人
+            sendApprovalNotification(record, node, employee, true, approvalStatus);
+        }
     }
 
     /**
      * 发送审批通知消息
      * @param toApprover true-发送给审批人，false-发送给申请人
+     * @param approvalStatus 审批状态
      */
-    private void sendApprovalNotification(ApprovalRecord record, ApprovalNode node, Employee employee, boolean toApprover) {
+    private void sendApprovalNotification(ApprovalRecord record, ApprovalNode node, Employee employee, boolean toApprover, Integer approvalStatus) {
         try {
             String businessTypeName = getBusinessTypeName(record.getBusinessType());
             String employeeName = employee != null ? employee.getName() : "未知";
@@ -308,10 +365,10 @@ public class ApprovalServiceImpl extends ServiceImpl<ApprovalRecordMapper, Appro
             } else {
                 // 通知申请人审批结果
                 String title, content;
-                if (record.getApprovalStatus() == 1) {
+                if (ApprovalStatus.APPROVED.getCode().equals(approvalStatus)) {
                     title = String.format("【审批通过】%s - %s", businessTypeName, employeeName);
                     content = String.format("您的%s申请已通过：%s", businessTypeName, employeeName);
-                } else if (record.getApprovalStatus() == 2) {
+                } else if (ApprovalStatus.REJECTED.getCode().equals(approvalStatus)) {
                     title = String.format("【审批拒绝】%s - %s", businessTypeName, employeeName);
                     content = String.format("您的%s申请已被拒绝：%s", businessTypeName, employeeName);
                 } else {
@@ -339,14 +396,14 @@ public class ApprovalServiceImpl extends ServiceImpl<ApprovalRecordMapper, Appro
         if (BUSINESS_TYPE_ENTRY.equals(record.getBusinessType())) {
             Employee employee = employeeMapper.selectById(record.getBusinessId());
             if (employee != null) {
-                employee.setStatus(1); // 在职
+                employee.setStatus(1);
                 employeeMapper.updateById(employee);
                 log.info("员工入职审批通过，更新状态：employeeId={}", employee.getId());
             }
         } else if (BUSINESS_TYPE_LEAVE.equals(record.getBusinessType())) {
             Employee employee = employeeMapper.selectById(record.getBusinessId());
             if (employee != null) {
-                employee.setStatus(0); // 离职
+                employee.setStatus(0);
                 employeeMapper.updateById(employee);
                 log.info("员工离职审批通过，更新状态：employeeId={}", employee.getId());
             }
@@ -372,7 +429,7 @@ public class ApprovalServiceImpl extends ServiceImpl<ApprovalRecordMapper, Appro
 
         // 查询所有待审批记录
         LambdaQueryWrapper<ApprovalRecord> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ApprovalRecord::getApprovalStatus, 0)
+        wrapper.eq(ApprovalRecord::getApprovalStatus, ApprovalStatus.PENDING.getCode())
                 .eq(ApprovalRecord::getIsDeleted, 0)
                 .orderByDesc(ApprovalRecord::getCreateTime);
 
@@ -507,9 +564,24 @@ public class ApprovalServiceImpl extends ServiceImpl<ApprovalRecordMapper, Appro
     }
 
     @Override
-    public ApprovalDetailVO getApprovalDetail(Long recordId) {
+    public ApprovalDetailVO getApprovalDetail(Long recordId, Long userId) {
         ApprovalRecord record = this.getById(recordId);
         if (record == null) {
+            return null;
+        }
+
+        // 权限校验：只有管理员、审批相关人员（当前审批人、申请人）可以查看详情
+        SysUser user = sysUserMapper.selectById(userId);
+        if (user == null) {
+            return null;
+        }
+
+        boolean isAdmin = user.getRoleId() != null && user.getRoleId() == 1;
+        boolean isApplicant = record.getApplicantId().equals(userId);
+        boolean isApprover = canUserApprove(user, record);
+
+        if (!isAdmin && !isApplicant && !isApprover) {
+            log.warn("用户无权查看审批详情: userId={}, recordId={}", userId, recordId);
             return null;
         }
 
@@ -551,11 +623,11 @@ public class ApprovalServiceImpl extends ServiceImpl<ApprovalRecordMapper, Appro
             throw new RuntimeException("只能撤销自己发起的审批");
         }
 
-        if (record.getApprovalStatus() != 0) {
+        if (!ApprovalStatus.isPending(record.getApprovalStatus())) {
             throw new RuntimeException("只能撤销进行中的审批");
         }
 
-        record.setApprovalStatus(3); // 3-已撤销
+        record.setApprovalStatus(ApprovalStatus.CANCELLED.getCode());
         this.updateById(record);
 
         log.info("审批已撤销：recordId={}", recordId);
@@ -616,7 +688,7 @@ public class ApprovalServiceImpl extends ServiceImpl<ApprovalRecordMapper, Appro
         vo.setId(history.getId());
         vo.setApproverId(history.getApproverId());
         vo.setApprovalStatus(history.getApprovalStatus());
-        vo.setApprovalStatusName(history.getApprovalStatus() == 1 ? "通过" : "拒绝");
+        vo.setApprovalStatusName(ApprovalStatus.getNameByCode(history.getApprovalStatus()));
         vo.setApprovalComment(history.getApprovalComment());
         vo.setApprovalTime(history.getApprovalTime());
         vo.setCreateTime(history.getCreateTime());
@@ -643,12 +715,6 @@ public class ApprovalServiceImpl extends ServiceImpl<ApprovalRecordMapper, Appro
     }
 
     private String getStatusName(Integer status) {
-        return switch (status) {
-            case 0 -> "待审批";
-            case 1 -> "已通过";
-            case 2 -> "已拒绝";
-            case 3 -> "已撤销";
-            default -> "未知";
-        };
+        return ApprovalStatus.getNameByCode(status);
     }
 }

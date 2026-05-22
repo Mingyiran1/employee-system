@@ -126,9 +126,14 @@ public class ApprovalController {
      */
     @GetMapping("/detail/{recordId}")
     public Result<ApprovalDetailVO> getApprovalDetail(@PathVariable Long recordId) {
-        ApprovalDetailVO detail = approvalService.getApprovalDetail(recordId);
+        SysUser currentUser = BaseContext.getCurrentUser();
+        if (currentUser == null) {
+            return Result.error("用户未登录");
+        }
+
+        ApprovalDetailVO detail = approvalService.getApprovalDetail(recordId, currentUser.getId());
         if (detail == null) {
-            return Result.error("审批记录不存在");
+            return Result.error("审批记录不存在或无权查看");
         }
         return Result.success(detail);
     }

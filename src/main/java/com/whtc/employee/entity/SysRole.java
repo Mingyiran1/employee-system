@@ -38,6 +38,12 @@ public class SysRole implements Serializable {
     private Integer dataScope;
 
     /**
+     * 是否系统默认角色：0-否 1-是
+     */
+    @TableField("is_system")
+    private Integer isSystem;
+
+    /**
      * 备注
      */
     private String remark;

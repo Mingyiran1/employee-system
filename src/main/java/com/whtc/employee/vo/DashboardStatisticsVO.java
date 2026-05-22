@@ -104,5 +104,10 @@ public class DashboardStatisticsVO implements Serializable {
          * 女员工数（gender=0或2，0是前端表单使用的值）
          */
         private Long femaleCount;
+
+        /**
+         * 性别未知员工数（gender为null或其他值）
+         */
+        private Long unknownCount;
     }
 }

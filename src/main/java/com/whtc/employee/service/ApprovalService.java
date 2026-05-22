@@ -51,9 +51,10 @@ public interface ApprovalService extends IService<ApprovalRecord> {
     /**
      * 查询审批详情（包含审批历史）
      * @param recordId 审批记录ID
+     * @param userId 当前用户ID
      * @return 审批详情
      */
-    ApprovalDetailVO getApprovalDetail(Long recordId);
+    ApprovalDetailVO getApprovalDetail(Long recordId, Long userId);
 
     /**
      * 查询业务的当前审批状态

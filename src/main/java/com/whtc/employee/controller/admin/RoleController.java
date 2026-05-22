@@ -3,6 +3,7 @@ package com.whtc.employee.controller.admin;
 import com.whtc.employee.common.Result;
 import com.whtc.employee.entity.SysRole;
 import com.whtc.employee.service.SysRoleService;
+import com.whtc.employee.service.SysUserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +21,9 @@ public class RoleController {
     @Autowired
     private SysRoleService sysRoleService;
 
+    @Autowired
+    private SysUserService sysUserService;
+
     /**
      * 获取所有角色列表
      */
@@ -36,6 +40,13 @@ public class RoleController {
     @PostMapping
     public Result save(@RequestBody SysRole role) {
         log.info("新增角色：{}", role);
+        // 校验角色编码唯一性
+        if (role.getCode() != null && !role.getCode().isEmpty()) {
+            SysRole existRole = sysRoleService.getByCode(role.getCode());
+            if (existRole != null) {
+                return Result.error("角色编码已存在");
+            }
+        }
         sysRoleService.save(role);
         return Result.success();
     }
@@ -56,7 +67,25 @@ public class RoleController {
     @DeleteMapping("/{id}")
     public Result delete(@PathVariable Long id) {
         log.info("删除角色，id：{}", id);
-        sysRoleService.removeById(id);
+
+        // 查询角色信息
+        SysRole role = sysRoleService.getById(id);
+        if (role == null) {
+            return Result.error("角色不存在");
+        }
+
+        // 检查是否为系统默认角色
+        if (role.getIsSystem() != null && role.getIsSystem() == 1) {
+            return Result.error("系统默认角色不能删除");
+        }
+
+        // 检查是否有用户关联此角色
+        Long userCount = sysUserService.countByRoleId(id);
+        if (userCount > 0) {
+            return Result.error("该角色下存在" + userCount + "个用户，不能删除");
+        }
+
+        sysRoleService.removeRoleById(id);
         return Result.success();
     }
 

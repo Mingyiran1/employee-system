@@ -66,11 +66,40 @@ public class SupplierServiceImpl extends ServiceImpl<SupplierMapper, Supplier> i
 
     @Override
     public void deleteById(Long id) {
+        // 校验是否存在关联业务数据
+        checkSupplierReferences(id);
         this.removeById(id);
     }
 
     @Override
     public void deleteByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return;
+        }
+        // 逐个校验关联数据
+        for (Long id : ids) {
+            checkSupplierReferences(id);
+        }
         this.removeByIds(ids);
+    }
+
+    /**
+     * 检查供应商是否存在关联业务数据
+     * @param supplierId 供应商ID
+     * @throws RuntimeException 如果存在关联数据则抛出异常
+     */
+    private void checkSupplierReferences(Long supplierId) {
+        // TODO: 根据实际业务需求添加关联校验
+        // 例如：检查是否存在采购订单、合同等关联数据
+        // 当前系统中未发现其他表引用supplier_id，保留此方法作为扩展点
+
+        // 示例：如果有采购订单表，可以添加如下校验：
+        // LambdaQueryWrapper<PurchaseOrder> wrapper = new LambdaQueryWrapper<>();
+        // wrapper.eq(PurchaseOrder::getSupplierId, supplierId);
+        // wrapper.eq(PurchaseOrder::getIsDeleted, 0);
+        // long count = purchaseOrderMapper.selectCount(wrapper);
+        // if (count > 0) {
+        //     throw new RuntimeException("该供应商存在关联采购订单，无法删除");
+        // }
     }
 }

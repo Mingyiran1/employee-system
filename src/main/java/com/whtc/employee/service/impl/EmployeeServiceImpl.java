@@ -90,6 +90,22 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
     @Override
     @CacheEvict(value = {"dashboard:all", "dashboard:overview", "dashboard:dept", "dashboard:trend", "dashboard:gender"}, allEntries = true)
     public void update(EmployeeDTO employeeDTO) {
+        // 校验ID不能为空
+        if (employeeDTO.getId() == null) {
+            throw new IllegalArgumentException("员工ID不能为空");
+        }
+
+        // 查询原员工信息（使用mapper直接查询Employee实体）
+        Employee existingEmployee = employeeMapper.selectById(employeeDTO.getId());
+        if (existingEmployee == null) {
+            throw new IllegalArgumentException("员工不存在");
+        }
+
+        // 数据权限校验
+        if (!hasPermissionToAccess(existingEmployee)) {
+            throw new IllegalArgumentException("无权修改该员工信息");
+        }
+
         Employee employee = new Employee();
         BeanUtils.copyProperties(employeeDTO, employee);
         this.updateById(employee);
@@ -101,6 +117,12 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
         if (employee == null) {
             return null;
         }
+
+        // 数据权限校验
+        if (!hasPermissionToAccess(employee)) {
+            return null; // 无权访问返回null
+        }
+
         EmployeeVO vo = new EmployeeVO();
         BeanUtils.copyProperties(employee, vo);
         vo.setDeptName(employee.getDeptName());
@@ -110,12 +132,38 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
     @Override
     @CacheEvict(value = {"dashboard:all", "dashboard:overview", "dashboard:dept", "dashboard:trend", "dashboard:gender"}, allEntries = true)
     public void deleteById(Long id) {
+        // 查询员工信息（使用mapper直接查询Employee实体）
+        Employee existingEmployee = employeeMapper.selectById(id);
+        if (existingEmployee == null) {
+            throw new IllegalArgumentException("员工不存在");
+        }
+
+        // 数据权限校验
+        if (!hasPermissionToAccess(existingEmployee)) {
+            throw new IllegalArgumentException("无权删除该员工");
+        }
+
         this.removeById(id);
     }
 
     @Override
     @CacheEvict(value = {"dashboard:all", "dashboard:overview", "dashboard:dept", "dashboard:trend", "dashboard:gender"}, allEntries = true)
     public void deleteByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new IllegalArgumentException("删除的员工ID列表不能为空");
+        }
+
+        // 逐个校验权限
+        for (Long id : ids) {
+            Employee existingEmployee = employeeMapper.selectById(id);
+            if (existingEmployee == null) {
+                throw new IllegalArgumentException("员工不存在，ID: " + id);
+            }
+            if (!hasPermissionToAccess(existingEmployee)) {
+                throw new IllegalArgumentException("无权删除员工，ID: " + id);
+            }
+        }
+
         this.removeByIds(ids);
     }
 
@@ -124,12 +172,17 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
         // 获取当前用户
         SysUser currentUser = BaseContext.getCurrentUser();
 
+        // currentUser为null时返回空列表（权限绕过防护）
+        if (currentUser == null) {
+            return new ArrayList<>();
+        }
+
         QueryWrapper<Employee> wrapper = new QueryWrapper<>();
         wrapper.eq("is_deleted", 0)
                .eq("status", 1);  // 在职员工
 
         // 根据角色进行权限过滤
-        if (currentUser != null && currentUser.getRoleId() != null) {
+        if (currentUser.getRoleId() != null) {
             Long roleId = currentUser.getRoleId();
 
             // 普通员工(roleId=4)：只能看到自己
@@ -142,7 +195,11 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
                 List<Long> deptIds = getDeptAndChildrenIds(currentUser.getManagedDeptId());
                 wrapper.in("dept_id", deptIds);
             }
-            // 管理员(roleId=1)和HR(roleId=3)：可以看到所有员工，不需要额外过滤
+            // 部门经理(roleId=3)：本部门
+            else if (roleId == 3 && currentUser.getManagedDeptId() != null) {
+                wrapper.eq("dept_id", currentUser.getManagedDeptId());
+            }
+            // 管理员(roleId=1)：可以看到所有员工，不需要额外过滤
         }
 
         wrapper.orderByDesc("create_time");
@@ -201,5 +258,45 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
         BeanUtils.copyProperties(employee, vo);
         vo.setDeptName(employee.getDeptName());
         return vo;
+    }
+
+    /**
+     * 检查当前用户是否有权限访问指定员工数据
+     * 权限规则：
+     * 1. 管理员(roleId=1)：可访问所有员工
+     * 2. 部门CEO(roleId=2)：可访问本部门及子部门员工
+     * 3. 部门经理(roleId=3)：可访问本部门员工
+     * 4. 普通用户(roleId=4)：只能访问自己创建的员工
+     */
+    private boolean hasPermissionToAccess(Employee employee) {
+        SysUser currentUser = BaseContext.getCurrentUser();
+        if (currentUser == null || currentUser.getRoleId() == null) {
+            return false;
+        }
+
+        Long roleId = currentUser.getRoleId();
+
+        // 管理员：全部权限
+        if (roleId == 1) {
+            return true;
+        }
+
+        // 部门CEO：本部门及子部门
+        if (roleId == 2 && currentUser.getManagedDeptId() != null) {
+            List<Long> deptIds = getDeptAndChildrenIds(currentUser.getManagedDeptId());
+            return deptIds.contains(employee.getDeptId());
+        }
+
+        // 部门经理：本部门
+        if (roleId == 3 && currentUser.getManagedDeptId() != null) {
+            return currentUser.getManagedDeptId().equals(employee.getDeptId());
+        }
+
+        // 普通用户：只能访问自己创建的员工
+        if (roleId == 4) {
+            return currentUser.getId().equals(employee.getCreateBy());
+        }
+
+        return false;
     }
 }

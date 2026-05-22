@@ -10,6 +10,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 部门管理控制器
+ * 最大部门层级限制：5层
+ */
 @RestController
 @RequestMapping("/admin/department")
 @Slf4j
@@ -17,6 +21,11 @@ public class DepartmentController {
 
     @Autowired
     private DepartmentService departmentService;
+
+    /**
+     * 最大部门层级深度
+     */
+    private static final int MAX_DEPT_LEVEL = 5;
 
     /**
      * 获取所有部门列表
@@ -34,6 +43,13 @@ public class DepartmentController {
     @PostMapping
     public Result save(@RequestBody Department department) {
         log.info("新增部门：{}", department);
+        // 校验部门层级
+        if (department.getParentId() != null) {
+            int parentLevel = departmentService.getDeptLevel(department.getParentId());
+            if (parentLevel + 1 > MAX_DEPT_LEVEL) {
+                return Result.error("部门层级不能超过" + MAX_DEPT_LEVEL + "层");
+            }
+        }
         departmentService.save(department);
         return Result.success();
     }
@@ -54,7 +70,7 @@ public class DepartmentController {
     @DeleteMapping("/{id}")
     public Result delete(@PathVariable Long id) {
         log.info("删除部门，id：{}", id);
-        departmentService.removeById(id);
+        departmentService.deleteById(id);
         return Result.success();
     }
 

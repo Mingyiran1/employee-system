@@ -9,6 +9,10 @@ import com.whtc.employee.mapper.SysMessageMapper;
 import com.whtc.employee.service.MessageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.HtmlUtils;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 消息通知服务实现
@@ -21,8 +25,9 @@ public class MessageServiceImpl extends ServiceImpl<SysMessageMapper, SysMessage
     public void sendApprovalMessage(Long userId, String title, String content, String businessType, Long businessId) {
         SysMessage message = new SysMessage();
         message.setUserId(userId);
-        message.setTitle(title);
-        message.setContent(content);
+        // 对标题和内容进行HTML转义，防止XSS攻击
+        message.setTitle(HtmlUtils.htmlEscape(title));
+        message.setContent(HtmlUtils.htmlEscape(content));
         message.setType(1); // 审批通知
         message.setBusinessType(businessType);
         message.setBusinessId(businessId);
@@ -66,5 +71,33 @@ public class MessageServiceImpl extends ServiceImpl<SysMessageMapper, SysMessage
     @Override
     public int markAllAsRead(Long userId) {
         return baseMapper.markAllAsRead(userId);
+    }
+
+    @Override
+    public int batchSendMessage(List<Long> userIds, String title, String content, Integer type) {
+        if (userIds == null || userIds.isEmpty()) {
+            return 0;
+        }
+
+        // 对标题和内容进行HTML转义，防止XSS攻击
+        String escapedTitle = HtmlUtils.htmlEscape(title);
+        String escapedContent = HtmlUtils.htmlEscape(content);
+
+        List<SysMessage> messages = new ArrayList<>();
+        for (Long userId : userIds) {
+            SysMessage message = new SysMessage();
+            message.setUserId(userId);
+            message.setTitle(escapedTitle);
+            message.setContent(escapedContent);
+            message.setType(type);
+            message.setIsRead(0);
+            messages.add(message);
+        }
+
+        // 批量保存
+        boolean success = this.saveBatch(messages);
+        int count = success ? messages.size() : 0;
+        log.info("批量发送消息：用户数={}, 成功数={}, title={}", userIds.size(), count, title);
+        return count;
     }
 }
