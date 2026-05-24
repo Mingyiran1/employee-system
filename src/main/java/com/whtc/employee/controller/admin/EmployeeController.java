@@ -10,6 +10,7 @@ import com.whtc.employee.entity.SysUser;
 import com.whtc.employee.service.EmployeeService;
 import com.whtc.employee.vo.EmployeeVO;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,7 +28,7 @@ public class EmployeeController {
      */
     @GetMapping("/page")
     @DataScope(deptField = "dept_id", userField = "create_by")
-    public Result<PageResult> page(EmployeePageQueryDTO employeePageQueryDTO) {
+    public Result<PageResult> page(@Valid EmployeePageQueryDTO employeePageQueryDTO) {
         log.info("员工分页查询，参数：{}", employeePageQueryDTO);
         PageResult pageResult = employeeService.pageQuery(employeePageQueryDTO);
         return Result.success(pageResult);
@@ -47,7 +48,7 @@ public class EmployeeController {
      * 新增员工
      */
     @PostMapping
-    public Result save(@RequestBody EmployeeDTO employeeDTO) {
+    public Result save(@Valid @RequestBody EmployeeDTO employeeDTO) {
         log.info("新增员工，员工数据：{}", employeeDTO);
         employeeService.save(employeeDTO);
         return Result.success();
@@ -57,7 +58,7 @@ public class EmployeeController {
      * 更新员工
      */
     @PutMapping
-    public Result update(@RequestBody EmployeeDTO employeeDTO) {
+    public Result update(@Valid @RequestBody EmployeeDTO employeeDTO) {
         log.info("编辑员工信息，员工数据：{}", employeeDTO);
         employeeService.update(employeeDTO);
         return Result.success();
@@ -77,7 +78,7 @@ public class EmployeeController {
      * 批量删除员工
      */
     @DeleteMapping("/batch")
-    public Result deleteBatch(@RequestParam java.util.List<Long> ids) {
+    public Result deleteBatch(@RequestParam @jakarta.validation.constraints.NotEmpty java.util.List<Long> ids) {
         log.info("批量删除员工，ids：{}", ids);
         employeeService.deleteByIds(ids);
         return Result.success();

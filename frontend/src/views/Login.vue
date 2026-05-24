@@ -80,8 +80,8 @@ const handleLogin = async () => {
   loading.value = true
   try {
     const res = await login(loginForm)
-    localStorage.setItem('token', res.data.token)
-    localStorage.setItem('user', JSON.stringify({
+    sessionStorage.setItem('token', res.data.token)
+    sessionStorage.setItem('user', JSON.stringify({
       id: res.data.id,
       username: res.data.userName,
       realName: res.data.name,
@@ -89,6 +89,9 @@ const handleLogin = async () => {
     }))
     ElMessage.success('登录成功')
     router.push('/')
+  } catch (error) {
+    console.error('登录失败', error)
+    // 错误提示已在响应拦截器统一处理，这里不需要重复显示
   } finally {
     loading.value = false
   }

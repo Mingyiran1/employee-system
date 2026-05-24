@@ -13,6 +13,7 @@ import com.whtc.employee.vo.ApprovalDetailVO;
 import com.whtc.employee.vo.ApprovalHistoryVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,6 +58,7 @@ public class ApprovalServiceImpl extends ServiceImpl<ApprovalRecordMapper, Appro
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = {"dashboard:all", "dashboard:approval"}, allEntries = true)
     public Long startApproval(String businessType, Long businessId, Long applicantId) {
         log.info("发起审批：businessType={}, businessId={}, applicantId={}", businessType, businessId, applicantId);
 
@@ -182,6 +184,7 @@ public class ApprovalServiceImpl extends ServiceImpl<ApprovalRecordMapper, Appro
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = {"dashboard:all", "dashboard:approval"}, allEntries = true)
     public void processApproval(Long recordId, Long approverId, Integer approvalStatus, String comment) {
         log.info("审批处理：recordId={}, approverId={}, approvalStatus={}", recordId, approverId, approvalStatus);
 
@@ -613,6 +616,7 @@ public class ApprovalServiceImpl extends ServiceImpl<ApprovalRecordMapper, Appro
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = {"dashboard:all", "dashboard:approval"}, allEntries = true)
     public void cancelApproval(Long recordId, Long applicantId) {
         ApprovalRecord record = this.getById(recordId);
         if (record == null) {

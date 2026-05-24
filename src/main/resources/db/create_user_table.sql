@@ -17,22 +17,22 @@ CREATE TABLE IF NOT EXISTS sys_user (
 
 -- 插入admin用户（密码是123456的BCrypt加密）
 INSERT INTO sys_user (id, username, password, real_name, name, role, role_id, role_code, status)
-VALUES (1, 'admin', '$2a$10$1nqhS2Db.x3xHV07zJP0ZOy8V4NQhBq5lkJUg3vx2ZOeLkqO3ZJ1i', '管理员', '管理员', 'admin', 1, 'admin', 1)
+VALUES (1, 'admin', '$2a$12$B3vMXj3WNXuTTUD/R/QsXuMH/XegkB6CbWcd..AphAnXlSaC87RcK', '管理员', '管理员', 'admin', 1, 'admin', 1)
 ON DUPLICATE KEY UPDATE
 role_id = 1,
 role_code = 'admin',
-password = '$2a$10$1nqhS2Db.x3xHV07zJP0ZOy8V4NQhBq5lkJUg3vx2ZOeLkqO3ZJ1i';
+password = '$2a$12$B3vMXj3WNXuTTUD/R/QsXuMH/XegkB6CbWcd..AphAnXlSaC87RcK';
 
 -- 插入测试账号：部门经理（密码123456）
 INSERT INTO sys_user (username, password, real_name, name, role_id, role_code, status)
-VALUES ('manager', '$2a$10$1nqhS2Db.x3xHV07zJP0ZOy8V4NQhBq5lkJUg3vx2ZOeLkqO3ZJ1i', '部门经理', '部门经理', 3, 'dept_manager', 1)
+VALUES ('manager', '$2a$12$B3vMXj3WNXuTTUD/R/QsXuMH/XegkB6CbWcd..AphAnXlSaC87RcK', '部门经理', '部门经理', 3, 'dept_manager', 1)
 ON DUPLICATE KEY UPDATE
 role_id = 3,
 role_code = 'dept_manager';
 
 -- 插入测试账号：普通员工（密码123456）
 INSERT INTO sys_user (username, password, real_name, name, role_id, role_code, status)
-VALUES ('user01', '$2a$10$1nqhS2Db.x3xHV07zJP0ZOy8V4NQhBq5lkJUg3vx2ZOeLkqO3ZJ1i', '普通员工', '普通员工', 4, 'user', 1)
+VALUES ('user01', '$2a$12$B3vMXj3WNXuTTUD/R/QsXuMH/XegkB6CbWcd..AphAnXlSaC87RcK', '普通员工', '普通员工', 4, 'user', 1)
 ON DUPLICATE KEY UPDATE
 role_id = 4,
 role_code = 'user';

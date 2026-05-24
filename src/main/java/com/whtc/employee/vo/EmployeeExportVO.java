@@ -65,6 +65,7 @@ public class EmployeeExportVO {
 
     /**
      * 性别转换器
+     * 数据库定义：1=男, 2=女(部分历史数据可能为0)
      */
     public static class GenderConverter implements com.alibaba.excel.converters.Converter<Integer> {
         @Override
@@ -83,7 +84,14 @@ public class EmployeeExportVO {
         public Integer convertToJavaData(com.alibaba.excel.metadata.data.ReadCellData<?> cellData,
                                           com.alibaba.excel.metadata.property.ExcelContentProperty contentProperty,
                                           com.alibaba.excel.metadata.GlobalConfiguration globalConfiguration) {
-            return null;
+            // 导入场景使用：与数据库保持一致，1=男，2=女
+            String text = cellData.getStringValue();
+            if (text == null) return null;
+            return switch (text.trim()) {
+                case "男" -> 1;
+                case "女" -> 2;  // 统一使用2，与前端和后端统计保持一致
+                default -> null;
+            };
         }
     }
 

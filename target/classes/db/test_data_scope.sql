@@ -11,17 +11,15 @@ INSERT IGNORE INTO department (id, name, parent_id, sort_order, create_time, upd
 (5, '技术部-前端组', 2, 2, NOW(), NOW());
 
 -- 2. 准备系统用户（不同角色）
--- 密码都是 123456
--- 注意：代码支持 BCrypt 和明文两种格式
--- 这里使用明文方便测试，生产环境请使用 BCrypt
+-- 密码都是 123456 (BCrypt加密)
 INSERT IGNORE INTO sys_user (id, username, password, real_name, role_id, role_code, status, create_time, update_time) VALUES
-(1, 'admin', '123456', '超级管理员', 1, 'admin', 1, NOW(), NOW()),
-(2, 'zhangsan', '123456', '张三（技术总监）', 2, 'dept_CEO', 1, NOW(), NOW()),
-(3, 'lisi', '123456', '李四（技术经理）', 3, 'dept_manager', 1, NOW(), NOW()),
-(4, 'wangwu', '123456', '王五（普通员工）', 4, 'user', 1, NOW(), NOW()),
-(5, 'zhaoliu', '123456', '赵六（市场经理）', 3, 'dept_manager', 1, NOW(), NOW()),
-(6, 'sunqi', '123456', '孙七（市场专员）', 4, 'user', 1, NOW(), NOW())
-ON DUPLICATE KEY UPDATE password = '123456';
+(1, 'admin', '$2a$12$B3vMXj3WNXuTTUD/R/QsXuMH/XegkB6CbWcd..AphAnXlSaC87RcK', '超级管理员', 1, 'admin', 1, NOW(), NOW()),
+(2, 'zhangsan', '$2a$12$B3vMXj3WNXuTTUD/R/QsXuMH/XegkB6CbWcd..AphAnXlSaC87RcK', '张三（技术总监）', 2, 'dept_CEO', 1, NOW(), NOW()),
+(3, 'lisi', '$2a$12$B3vMXj3WNXuTTUD/R/QsXuMH/XegkB6CbWcd..AphAnXlSaC87RcK', '李四（技术经理）', 3, 'dept_manager', 1, NOW(), NOW()),
+(4, 'wangwu', '$2a$12$B3vMXj3WNXuTTUD/R/QsXuMH/XegkB6CbWcd..AphAnXlSaC87RcK', '王五（普通员工）', 4, 'user', 1, NOW(), NOW()),
+(5, 'zhaoliu', '$2a$12$B3vMXj3WNXuTTUD/R/QsXuMH/XegkB6CbWcd..AphAnXlSaC87RcK', '赵六（市场经理）', 3, 'dept_manager', 1, NOW(), NOW()),
+(6, 'sunqi', '$2a$12$B3vMXj3WNXuTTUD/R/QsXuMH/XegkB6CbWcd..AphAnXlSaC87RcK', '孙七（市场专员）', 4, 'user', 1, NOW(), NOW())
+ON DUPLICATE KEY UPDATE password = '$2a$12$B3vMXj3WNXuTTUD/R/QsXuMH/XegkB6CbWcd..AphAnXlSaC87RcK';
 
 -- 3. 准备员工数据（关联系统用户）
 -- 注意：先清空测试数据避免冲突

@@ -56,12 +56,16 @@ public class ExportController {
         log.info("创建员工导出任务: userId={}, scope={}, fields={}",
                 currentUser.getId(), exportDTO.getExportScope(), exportDTO.getFields());
 
-        Long taskId = exportService.createExportTask(currentUser.getId(), exportDTO);
+        try {
+            Long taskId = exportService.createExportTask(currentUser.getId(), exportDTO);
 
-        // 异步执行导出
-        exportService.asyncExportEmployee(taskId);
+            // 异步执行导出
+            exportService.asyncExportEmployee(taskId);
 
-        return Result.success(taskId);
+            return Result.success(taskId);
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
     }
 
     /**

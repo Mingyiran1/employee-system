@@ -1,13 +1,11 @@
 package com.whtc.employee.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.whtc.employee.common.PageResult;
 import com.whtc.employee.context.BaseContext;
 import com.whtc.employee.dto.EmployeePageQueryDTO;
 import com.whtc.employee.entity.SysUser;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -48,8 +46,7 @@ public class DataScopeTest {
         EmployeePageQueryDTO dto = new EmployeePageQueryDTO();
         dto.setPage(1);
         dto.setSize(10);
-        QueryWrapper wrapper = new QueryWrapper();
-        PageResult result = employeeService.pageQuery(dto, wrapper);
+        PageResult result = employeeService.pageQuery(dto);
 
         log.info("admin 查询结果总数: {}", result.getTotal());
         // admin 应该看到全部数据（8条）
@@ -74,8 +71,7 @@ public class DataScopeTest {
         EmployeePageQueryDTO dto = new EmployeePageQueryDTO();
         dto.setPage(1);
         dto.setSize(10);
-        QueryWrapper wrapper = new QueryWrapper();
-        PageResult result = employeeService.pageQuery(dto, wrapper);
+        PageResult result = employeeService.pageQuery(dto);
 
         log.info("张三(技术总监) 查询结果总数: {}", result.getTotal());
         // 张三应该看到技术部及子部门的数据（5条：张三、李四、王五、员工A、员工B）
@@ -100,8 +96,7 @@ public class DataScopeTest {
         EmployeePageQueryDTO dto = new EmployeePageQueryDTO();
         dto.setPage(1);
         dto.setSize(10);
-        QueryWrapper wrapper = new QueryWrapper();
-        PageResult result = employeeService.pageQuery(dto, wrapper);
+        PageResult result = employeeService.pageQuery(dto);
 
         log.info("李四(技术经理) 查询结果总数: {}", result.getTotal());
         // 李四应该只看到技术部本部门的数据（2条：张三、李四）
@@ -127,8 +122,7 @@ public class DataScopeTest {
         EmployeePageQueryDTO dto = new EmployeePageQueryDTO();
         dto.setPage(1);
         dto.setSize(10);
-        QueryWrapper wrapper = new QueryWrapper();
-        PageResult result = employeeService.pageQuery(dto, wrapper);
+        PageResult result = employeeService.pageQuery(dto);
 
         log.info("王五(普通员工) 查询结果总数: {}", result.getTotal());
         // 王五应该只看到create_by=2的数据（张三创建的：李四、王五）
@@ -147,8 +141,7 @@ public class DataScopeTest {
         EmployeePageQueryDTO dto = new EmployeePageQueryDTO();
         dto.setPage(1);
         dto.setSize(10);
-        QueryWrapper wrapper = new QueryWrapper();
-        PageResult result = employeeService.pageQuery(dto, wrapper);
+        PageResult result = employeeService.pageQuery(dto);
 
         log.info("未登录用户 查询结果总数: {}", result.getTotal());
         // 未登录用户可能会返回全部数据（因为没有过滤）或空数据
@@ -174,8 +167,7 @@ public class DataScopeTest {
         dto.setPage(1);
         dto.setSize(10);
         dto.setDeptId(5L); // 前端组
-        QueryWrapper wrapper = new QueryWrapper();
-        PageResult result = employeeService.pageQuery(dto, wrapper);
+        PageResult result = employeeService.pageQuery(dto);
 
         log.info("张三查询前端组 查询结果总数: {}", result.getTotal());
         // 前端组只有员工B

@@ -100,7 +100,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, watch, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getExportFields, createExportTask, getTaskStatus, downloadExportFile } from '@/api/export'
 
@@ -133,6 +133,7 @@ const progressPercent = ref(0)
 const progressStatus = ref('')
 const progressText = ref('正在准备导出...')
 const currentTaskId = ref(null)
+let pollTimer = null  // 轮询定时器引用
 
 // 计算属性
 const canExport = computed(() => {
@@ -222,8 +223,23 @@ const handleExport = async () => {
   }
 }
 
+// 清除轮询定时器
+const clearPollTimer = () => {
+  if (pollTimer) {
+    clearTimeout(pollTimer)
+    pollTimer = null
+  }
+}
+
+// 组件卸载时清除定时器
+onUnmounted(() => {
+  clearPollTimer()
+})
+
 // 轮询任务状态
 const startPolling = (taskId) => {
+  clearPollTimer() // 清除之前的定时器
+
   const pollInterval = 1000 // 每秒轮询一次
   const maxAttempts = 300 // 最多轮询5分钟
   let attempts = 0
@@ -233,6 +249,7 @@ const startPolling = (taskId) => {
     if (attempts > maxAttempts) {
       progressVisible.value = false
       ElMessage.error('导出超时，请稍后到消息中心查看结果')
+      clearPollTimer()
       return
     }
 
@@ -244,17 +261,18 @@ const startPolling = (taskId) => {
         case 0: // 等待中
           progressPercent.value = 5
           progressText.value = '等待执行...'
-          setTimeout(poll, pollInterval)
+          pollTimer = setTimeout(poll, pollInterval)
           break
         case 1: // 执行中
           progressPercent.value = Math.min(50 + (attempts * 2), 95)
           progressText.value = `正在导出数据...（共${task.totalCount}条）`
-          setTimeout(poll, pollInterval)
+          pollTimer = setTimeout(poll, pollInterval)
           break
         case 2: // 成功
           progressPercent.value = 100
           progressStatus.value = 'success'
           progressText.value = '导出完成！'
+          clearPollTimer()
 
           // 延迟关闭进度弹窗并下载
           setTimeout(() => {
@@ -270,14 +288,15 @@ const startPolling = (taskId) => {
         case 3: // 失败
           progressVisible.value = false
           progressStatus.value = 'exception'
+          clearPollTimer()
           ElMessage.error(`导出失败：${task.errorMsg || '未知错误'}`)
           break
         default:
-          setTimeout(poll, pollInterval)
+          pollTimer = setTimeout(poll, pollInterval)
       }
     } catch (error) {
       console.error('轮询任务状态失败', error)
-      setTimeout(poll, pollInterval)
+      pollTimer = setTimeout(poll, pollInterval)
     }
   }
 

@@ -16,17 +16,21 @@
           <el-icon><DataLine /></el-icon>
           <span>数据仪表盘</span>
         </el-menu-item>
-        <el-menu-item index="/employee">
-          <el-icon><User /></el-icon>
-          <span>员工管理</span>
+        <el-menu-item index="/insurance-employee">
+          <el-icon><IconUserFilled /></el-icon>
+          <span>{{ insuranceEmployeeMenuTitle }}</span>
+        </el-menu-item>
+        <el-menu-item index="/insurance-company">
+          <el-icon><OfficeBuilding /></el-icon>
+          <span>{{ insuranceCompanyMenuTitle }}</span>
+        </el-menu-item>
+        <el-menu-item index="/premium-config">
+          <el-icon><Coin /></el-icon>
+          <span>保费配置</span>
         </el-menu-item>
         <el-menu-item index="/supplier">
-          <el-icon><OfficeBuilding /></el-icon>
-          <span>供应商管理</span>
-        </el-menu-item>
-        <el-menu-item index="/department">
-          <el-icon><School /></el-icon>
-          <span>部门管理</span>
+          <el-icon><Shop /></el-icon>
+          <span>{{ supplierMenuTitle }}</span>
         </el-menu-item>
         <el-menu-item index="/approval">
           <el-icon><DocumentChecked /></el-icon>
@@ -74,15 +78,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Management, User, OfficeBuilding, School, DocumentChecked, UserFilled, ArrowDown, Bell, SwitchButton, DataLine } from '@element-plus/icons-vue'
+import { Management, OfficeBuilding, DocumentChecked, UserFilled, ArrowDown, Bell, SwitchButton, DataLine, UserFilled as IconUserFilled, Coin, Shop } from '@element-plus/icons-vue'
 import { getUnreadCount } from '@/api/message'
 import eventBus from '@/utils/eventBus'
 
 const router = useRouter()
-const userInfo = ref(JSON.parse(localStorage.getItem('user') || '{}'))
+const userInfo = ref(JSON.parse(sessionStorage.getItem('user') || '{}'))
+const isRegularUser = computed(() => userInfo.value.roleId === 4)
+const insuranceEmployeeMenuTitle = computed(() => (isRegularUser.value ? '保险员工' : '保险员工管理'))
+const insuranceCompanyMenuTitle = computed(() => (isRegularUser.value ? '投保公司' : '投保公司管理'))
+const supplierMenuTitle = computed(() => (isRegularUser.value ? '供应商' : '供应商管理'))
 const unreadCount = ref(0)
 let messageTimer = null
 
@@ -107,8 +115,8 @@ const handleCommand = (command) => {
     ElMessageBox.confirm('确定要退出登录吗？', '提示', {
       type: 'warning'
     }).then(() => {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
+      sessionStorage.removeItem('token')
+      sessionStorage.removeItem('user')
       ElMessage.success('已退出登录')
       router.push('/login')
     })

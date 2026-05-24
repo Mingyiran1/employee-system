@@ -334,7 +334,7 @@ const pendingCount = ref(0)
 const myApprovalCount = ref(0)
 
 // 当前用户信息
-const currentUser = ref(JSON.parse(localStorage.getItem('user') || '{}'))
+const currentUser = ref(JSON.parse(sessionStorage.getItem('user') || '{}'))
 
 // 是否有审批权限（非普通员工）
 const canApprove = computed(() => {

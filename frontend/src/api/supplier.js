@@ -37,3 +37,11 @@ export const deleteSupplier = (id) => {
     method: 'delete'
   })
 }
+
+// 获取所有供应商列表（用于下拉选择）
+export const getSupplierList = () => {
+  return request({
+    url: '/admin/supplier/list',
+    method: 'get'
+  })
+}

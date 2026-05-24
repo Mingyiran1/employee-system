@@ -11,6 +11,7 @@ import com.whtc.employee.mapper.SupplierMapper;
 import com.whtc.employee.service.SupplierService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
@@ -37,6 +38,7 @@ public class SupplierServiceImpl extends ServiceImpl<SupplierMapper, Supplier> i
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void save(SupplierDTO supplierDTO) {
         Supplier supplier = new Supplier();
         BeanUtils.copyProperties(supplierDTO, supplier);
@@ -47,6 +49,7 @@ public class SupplierServiceImpl extends ServiceImpl<SupplierMapper, Supplier> i
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void update(SupplierDTO supplierDTO) {
         Supplier supplier = new Supplier();
         BeanUtils.copyProperties(supplierDTO, supplier);
@@ -65,6 +68,7 @@ public class SupplierServiceImpl extends ServiceImpl<SupplierMapper, Supplier> i
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteById(Long id) {
         // 校验是否存在关联业务数据
         checkSupplierReferences(id);
@@ -72,9 +76,10 @@ public class SupplierServiceImpl extends ServiceImpl<SupplierMapper, Supplier> i
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteByIds(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
-            return;
+            throw new IllegalArgumentException("删除的供应商ID列表不能为空");
         }
         // 逐个校验关联数据
         for (Long id : ids) {
@@ -101,5 +106,19 @@ public class SupplierServiceImpl extends ServiceImpl<SupplierMapper, Supplier> i
         // if (count > 0) {
         //     throw new RuntimeException("该供应商存在关联采购订单，无法删除");
         // }
+    }
+
+    @Override
+    public List<SupplierDTO> listAll() {
+        LambdaQueryWrapper<Supplier> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Supplier::getIsDeleted, 0)
+               .orderByDesc(Supplier::getCreateTime);
+        List<Supplier> list = this.list(wrapper);
+
+        return list.stream().map(supplier -> {
+            SupplierDTO dto = new SupplierDTO();
+            BeanUtils.copyProperties(supplier, dto);
+            return dto;
+        }).collect(java.util.stream.Collectors.toList());
     }
 }

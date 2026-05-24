@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.whtc.employee.mapper.InsuredCompanyMapper">
+
+    <!-- 分页查询投保公司列表（包含员工数量统计） -->
+    <select id="selectCompanyPage" resultType="com.whtc.employee.vo.InsuredCompanyVO">
+        SELECT
+            ic.id,
+            ic.name,
+            ic.contact_name as contactName,
+            ic.contact_phone as contactPhone,
+            ic.address,
+            ic.status,
+            ic.create_time as createTime,
+            ic.update_time as updateTime,
+            COUNT(ie.id) as employeeCount
+        FROM insured_company ic
+        LEFT JOIN insurance_employee ie ON ic.id = ie.company_id AND ie.is_deleted = 0 AND ie.status = 1
+        WHERE ic.is_deleted = 0
+        <if test="query.name != null and query.name != ''">
+            AND ic.name LIKE CONCAT('%', #{query.name}, '%')
+        </if>
+        <if test="query.status != null">
+            AND ic.status = #{query.status}
+        </if>
+        GROUP BY ic.id, ic.name, ic.contact_name, ic.contact_phone, ic.address, ic.status, ic.create_time, ic.update_time
+        ORDER BY ic.create_time DESC
+    </select>
+
+</mapper>

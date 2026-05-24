@@ -8,6 +8,7 @@ import com.whtc.employee.entity.ApprovalRecord;
 import com.whtc.employee.entity.SysUser;
 import com.whtc.employee.service.ApprovalService;
 import com.whtc.employee.vo.ApprovalDetailVO;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -29,7 +30,7 @@ public class ApprovalController {
      * @return 审批记录ID
      */
     @PostMapping("/start")
-    public Result<Long> startApproval(@RequestBody ApprovalProcessDTO dto) {
+    public Result<Long> startApproval(@Valid @RequestBody ApprovalProcessDTO dto) {
         log.info("发起审批：businessType={}, businessId={}", dto.getBusinessType(), dto.getBusinessId());
 
         SysUser currentUser = BaseContext.getCurrentUser();
@@ -59,7 +60,7 @@ public class ApprovalController {
     @PostMapping("/process/{recordId}")
     public Result<Void> processApproval(
             @PathVariable Long recordId,
-            @RequestBody ApprovalProcessDTO dto) {
+            @Valid @RequestBody ApprovalProcessDTO dto) {
         log.info("审批处理：recordId={}, status={}", recordId, dto.getApprovalStatus());
 
         SysUser currentUser = BaseContext.getCurrentUser();
@@ -146,8 +147,8 @@ public class ApprovalController {
      */
     @GetMapping("/status")
     public Result<ApprovalRecord> getApprovalStatus(
-            @RequestParam String businessType,
-            @RequestParam Long businessId) {
+            @RequestParam @jakarta.validation.constraints.NotBlank String businessType,
+            @RequestParam @jakarta.validation.constraints.NotNull Long businessId) {
         ApprovalRecord record = approvalService.getApprovalStatus(businessType, businessId);
         return Result.success(record);
     }

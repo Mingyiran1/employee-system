@@ -5,7 +5,7 @@ import com.whtc.employee.constant.MessageConstant;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-// import org.springframework.security.access.AccessDeniedException; // 项目未引入Spring Security，使用自定义异常
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -93,6 +93,13 @@ public class GlobalExceptionHandler {
     public Result<String> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
         log.error("请求参数格式错误：{}", e.getMessage());
         return Result.error(MessageConstant.PARAM_ERROR);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public Result<String> handleAccessDeniedException(AccessDeniedException e) {
+        log.error("权限不足：{}", e.getMessage());
+        return Result.error(403, "无权限访问");
     }
 
     @ExceptionHandler(Exception.class)

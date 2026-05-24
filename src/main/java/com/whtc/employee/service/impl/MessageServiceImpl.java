@@ -9,10 +9,12 @@ import com.whtc.employee.mapper.SysMessageMapper;
 import com.whtc.employee.service.MessageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.HtmlUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 消息通知服务实现
@@ -22,6 +24,7 @@ import java.util.List;
 public class MessageServiceImpl extends ServiceImpl<SysMessageMapper, SysMessage> implements MessageService {
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void sendApprovalMessage(Long userId, String title, String content, String businessType, Long businessId) {
         SysMessage message = new SysMessage();
         message.setUserId(userId);
@@ -58,9 +61,10 @@ public class MessageServiceImpl extends ServiceImpl<SysMessageMapper, SysMessage
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean markAsRead(Long messageId, Long userId) {
         SysMessage message = this.getById(messageId);
-        if (message == null || !message.getUserId().equals(userId)) {
+        if (message == null || !Objects.equals(message.getUserId(), userId)) {
             return false;
         }
         message.setIsRead(1);
@@ -74,9 +78,10 @@ public class MessageServiceImpl extends ServiceImpl<SysMessageMapper, SysMessage
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int batchSendMessage(List<Long> userIds, String title, String content, Integer type) {
         if (userIds == null || userIds.isEmpty()) {
-            return 0;
+            throw new IllegalArgumentException("接收用户列表不能为空");
         }
 
         // 对标题和内容进行HTML转义，防止XSS攻击

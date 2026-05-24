@@ -43,6 +43,9 @@ public class DepartmentController {
     @PostMapping
     public Result save(@RequestBody Department department) {
         log.info("新增部门：{}", department);
+        if (department == null) {
+            return Result.error("部门信息不能为空");
+        }
         // 校验部门层级
         if (department.getParentId() != null) {
             int parentLevel = departmentService.getDeptLevel(department.getParentId());

@@ -67,9 +67,30 @@ public class ExportServiceImpl implements ExportService {
     private static final int MAX_EXPORT_COUNT = 10000;
     // 每批次读取数量
     private static final int BATCH_SIZE = 500;
+    // 单个用户最大进行中任务数
+    private static final int MAX_RUNNING_TASKS_PER_USER = 2;
 
     @Override
     public Long createExportTask(Long userId, EmployeeExportDTO exportDTO) {
+        // 检查用户并发任务数
+        int runningTasks = exportTaskMapper.countUserRunningTasks(userId);
+        if (runningTasks >= MAX_RUNNING_TASKS_PER_USER) {
+            throw new IllegalStateException("您已有" + runningTasks + "个进行中的导出任务，请等待完成后再创建新任务");
+        }
+
+        // 校验字段白名单
+        List<String> validFields = EmployeeExportDTO.ALL_FIELD_OPTIONS.stream()
+                .map(EmployeeExportDTO.FieldOption::getValue)
+                .toList();
+        List<String> requestedFields = exportDTO.getFields();
+        if (requestedFields != null && !requestedFields.isEmpty()) {
+            for (String field : requestedFields) {
+                if (!validFields.contains(field)) {
+                    throw new IllegalArgumentException("非法的导出字段: " + field);
+                }
+            }
+        }
+
         ExportTask task = new ExportTask();
         task.setUserId(userId);
         task.setStatus(ExportTask.STATUS_PENDING);
@@ -102,6 +123,11 @@ public class ExportServiceImpl implements ExportService {
         if (task == null) {
             log.error("导出任务不存在: taskId={}", taskId);
             return;
+        }
+
+        // 如果任务有历史文件，先删除（重试场景）
+        if (task.getFilePath() != null) {
+            deletePhysicalFile(task.getFilePath());
         }
 
         // 更新状态为执行中
@@ -150,6 +176,9 @@ public class ExportServiceImpl implements ExportService {
             task.setFinishTime(LocalDateTime.now());
             exportTaskMapper.updateById(task);
 
+            // 失败时删除临时文件
+            deletePhysicalFile(task.getFilePath());
+
             // 发送失败通知
             messageService.batchSendMessage(List.of(task.getUserId()), "报表导出失败",
                     "导出失败: " + e.getMessage(), 2);
@@ -175,7 +204,7 @@ public class ExportServiceImpl implements ExportService {
         if (task == null) {
             throw new IllegalArgumentException("任务不存在");
         }
-        if (!task.getUserId().equals(userId)) {
+        if (!Objects.equals(task.getUserId(), userId)) {
             throw new IllegalArgumentException("无权访问此任务");
         }
         if (task.getStatus() != ExportTask.STATUS_SUCCESS) {
@@ -314,28 +343,33 @@ public class ExportServiceImpl implements ExportService {
         // 获取部门名称映射
         Map<Long, String> deptNameMap = getDeptNameMap();
 
-        // 创建ExcelWriter
-        ExcelWriter excelWriter = EasyExcel.write(filePath, EmployeeExportVO.class).build();
-        WriteSheet writeSheet = EasyExcel.writerSheet("员工列表").build();
+        // 创建ExcelWriter - 使用try-finally确保资源释放
+        ExcelWriter excelWriter = null;
+        try {
+            excelWriter = EasyExcel.write(filePath, EmployeeExportVO.class).build();
+            WriteSheet writeSheet = EasyExcel.writerSheet("员工列表").build();
 
-        // 分页导出
-        if (exportDTO.getExportScope() == EmployeeExportDTO.SCOPE_CURRENT_PAGE) {
-            // 导出当前页
-            int page = exportDTO.getPage() != null ? exportDTO.getPage() : 1;
-            int size = exportDTO.getSize() != null ? exportDTO.getSize() : 10;
-            List<EmployeeExportVO> list = fetchAndConvert(page, size, exportDTO, deptNameMap);
-            excelWriter.write(list, writeSheet);
-        } else {
-            // 导出所有筛选数据（分页读取）
-            int totalPage = (int) Math.ceil((double) totalCount / BATCH_SIZE);
-            for (int page = 1; page <= totalPage; page++) {
-                List<EmployeeExportVO> list = fetchAndConvert(page, BATCH_SIZE, exportDTO, deptNameMap);
+            // 分页导出
+            if (exportDTO.getExportScope() == EmployeeExportDTO.SCOPE_CURRENT_PAGE) {
+                // 导出当前页
+                int page = exportDTO.getPage() != null ? exportDTO.getPage() : 1;
+                int size = exportDTO.getSize() != null ? exportDTO.getSize() : 10;
+                List<EmployeeExportVO> list = fetchAndConvert(page, size, exportDTO, deptNameMap);
                 excelWriter.write(list, writeSheet);
-                log.debug("导出进度: page={}/{}, size={}", page, totalPage, list.size());
+            } else {
+                // 导出所有筛选数据（分页读取）
+                int totalPage = (int) Math.ceil((double) totalCount / BATCH_SIZE);
+                for (int page = 1; page <= totalPage; page++) {
+                    List<EmployeeExportVO> list = fetchAndConvert(page, BATCH_SIZE, exportDTO, deptNameMap);
+                    excelWriter.write(list, writeSheet);
+                    log.debug("导出进度: page={}/{}, size={}", page, totalPage, list.size());
+                }
+            }
+        } finally {
+            if (excelWriter != null) {
+                excelWriter.finish();
             }
         }
-
-        excelWriter.finish();
         return filePath;
     }
 
@@ -386,6 +420,28 @@ public class ExportServiceImpl implements ExportService {
             return String.format("%.2fMB", size / (1024.0 * 1024));
         } else {
             return String.format("%.2fGB", size / (1024.0 * 1024 * 1024));
+        }
+    }
+
+    /**
+     * 删除物理文件
+     */
+    private void deletePhysicalFile(String filePath) {
+        if (filePath == null || filePath.isEmpty()) {
+            return;
+        }
+        try {
+            File file = new File(filePath);
+            if (file.exists() && file.isFile()) {
+                boolean deleted = file.delete();
+                if (deleted) {
+                    log.info("删除导出文件成功: {}", filePath);
+                } else {
+                    log.warn("删除导出文件失败: {}", filePath);
+                }
+            }
+        } catch (Exception e) {
+            log.error("删除导出文件异常: {}", filePath, e);
         }
     }
 }

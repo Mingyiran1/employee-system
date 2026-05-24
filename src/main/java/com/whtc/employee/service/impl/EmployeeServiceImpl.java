@@ -19,10 +19,15 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -71,6 +76,7 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = {"dashboard:all", "dashboard:overview", "dashboard:dept", "dashboard:trend", "dashboard:gender"}, allEntries = true)
     public void save(EmployeeDTO employeeDTO) {
         Employee employee = new Employee();
@@ -88,6 +94,7 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = {"dashboard:all", "dashboard:overview", "dashboard:dept", "dashboard:trend", "dashboard:gender"}, allEntries = true)
     public void update(EmployeeDTO employeeDTO) {
         // 校验ID不能为空
@@ -130,6 +137,7 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = {"dashboard:all", "dashboard:overview", "dashboard:dept", "dashboard:trend", "dashboard:gender"}, allEntries = true)
     public void deleteById(Long id) {
         // 查询员工信息（使用mapper直接查询Employee实体）
@@ -147,6 +155,7 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = {"dashboard:all", "dashboard:overview", "dashboard:dept", "dashboard:trend", "dashboard:gender"}, allEntries = true)
     public void deleteByIds(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
@@ -185,9 +194,9 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
         if (currentUser.getRoleId() != null) {
             Long roleId = currentUser.getRoleId();
 
-            // 普通员工(roleId=4)：只能看到自己
+            // 普通员工(roleId=4)：只能看到自己创建的员工
             if (roleId == 4) {
-                wrapper.eq("user_id", currentUser.getId());
+                wrapper.eq("create_by", currentUser.getId());
             }
             // 部门经理(roleId=2)：只能看到自己管辖部门及子部门的员工
             else if (roleId == 2 && currentUser.getManagedDeptId() != null) {
@@ -228,24 +237,44 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
     }
 
     /**
-     * 递归获取子部门ID
+     * 递归获取子部门ID - 优化版本：一次性查询所有部门，内存构建树结构
      */
     private List<Long> getChildrenDeptIds(Long parentId) {
-        List<Long> result = new ArrayList<>();
-
-        // 查询直接子部门
+        // 一次性查询所有未删除的部门
         QueryWrapper<Department> wrapper = new QueryWrapper<>();
-        wrapper.eq("parent_id", parentId)
-               .eq("is_deleted", 0);
-        List<Department> children = departmentMapper.selectList(wrapper);
+        wrapper.eq("is_deleted", 0);
+        List<Department> allDepts = departmentMapper.selectList(wrapper);
+
+        // 构建父子关系映射
+        Map<Long, List<Department>> parentToChildrenMap = allDepts.stream()
+                .filter(dept -> dept.getParentId() != null)
+                .collect(Collectors.groupingBy(
+                        Department::getParentId,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+
+        // 递归收集所有子部门ID
+        List<Long> result = new ArrayList<>();
+        collectChildrenIds(parentId, parentToChildrenMap, result);
+        return result;
+    }
+
+    /**
+     * 递归收集子部门ID
+     */
+    private void collectChildrenIds(Long parentId,
+                                     Map<Long, List<Department>> parentToChildrenMap,
+                                     List<Long> result) {
+        List<Department> children = parentToChildrenMap.get(parentId);
+        if (children == null || children.isEmpty()) {
+            return;
+        }
 
         for (Department child : children) {
             result.add(child.getId());
-            // 递归获取孙部门
-            result.addAll(getChildrenDeptIds(child.getId()));
+            collectChildrenIds(child.getId(), parentToChildrenMap, result);
         }
-
-        return result;
     }
 
     @Override

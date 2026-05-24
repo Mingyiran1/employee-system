@@ -57,19 +57,11 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             throw new LoginFailedException(errorMessage);
         }
 
-        // 密码比对 - 支持明文和BCrypt加密两种格式（测试环境兼容，生产环境应强制BCrypt）
+        // 密码比对 - 强制使用BCrypt加密
         String inputPassword = loginDTO.getPassword();
         String storedPassword = user.getPassword();
 
-        boolean passwordMatch;
-        if (storedPassword.startsWith("$2a$") || storedPassword.startsWith("$2b$") || storedPassword.startsWith("$2y$")) {
-            // BCrypt加密密码
-            passwordMatch = passwordEncoder.matches(inputPassword, storedPassword);
-        } else {
-            // 明文密码（仅用于测试环境兼容）
-            log.warn("用户 {} 使用明文密码登录，建议尽快更新为BCrypt加密", username);
-            passwordMatch = inputPassword.equals(storedPassword);
-        }
+        boolean passwordMatch = passwordEncoder.matches(inputPassword, storedPassword);
 
         if (!passwordMatch) {
             // 密码错误，记录失败次数
@@ -87,22 +79,21 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
     /**
      * 记录登录失败次数，超过限制则锁定账号
+     * 使用Redis原子操作避免竞态条件
      */
     private void recordFailedAttempt(String attemptKey, String lockKey) {
-        // 获取当前失败次数
-        Integer attempts = (Integer) redisTemplate.opsForValue().get(attemptKey);
-        if (attempts == null) {
-            attempts = 0;
-        }
-        attempts++;
+        // 使用Redis INCR原子操作增加失败次数
+        Long attempts = redisTemplate.opsForValue().increment(attemptKey);
 
-        if (attempts >= MAX_LOGIN_ATTEMPTS) {
+        if (attempts != null && attempts >= MAX_LOGIN_ATTEMPTS) {
             // 超过限制，锁定账号15分钟
             redisTemplate.opsForValue().set(lockKey, 1, LOCK_DURATION_MINUTES, TimeUnit.MINUTES);
             redisTemplate.delete(attemptKey);
         } else {
-            // 增加失败次数，5分钟后过期
-            redisTemplate.opsForValue().set(attemptKey, attempts, 5, TimeUnit.MINUTES);
+            // 设置或重置过期时间为5分钟（仅在第一次失败时设置）
+            if (attempts != null && attempts == 1) {
+                redisTemplate.expire(attemptKey, 5, TimeUnit.MINUTES);
+            }
         }
     }
 

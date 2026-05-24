@@ -18,10 +18,16 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 @Slf4j
 public class JwtTokenInterceptor implements HandlerInterceptor {
@@ -50,6 +56,8 @@ public class JwtTokenInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        clearContexts();
+
         // 判断当前拦截到的是Controller的方法还是其他资源
         if (!(handler instanceof HandlerMethod)) {
             return true;
@@ -87,6 +95,7 @@ public class JwtTokenInterceptor implements HandlerInterceptor {
             SysUser user = sysUserService.getById(empId);
             if (user != null) {
                 BaseContext.setCurrentUser(user);
+                SecurityContextHolder.getContext().setAuthentication(buildAuthentication(user));
                 log.info("当前用户角色：{}", user.getRoleCode());
             }
 
@@ -107,6 +116,34 @@ public class JwtTokenInterceptor implements HandlerInterceptor {
             log.error("Token验证失败：{}", ex.getMessage());
             return writeErrorResponse(response, 401, CODE_TOKEN_INVALID, "Token验证失败");
         }
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+        clearContexts();
+    }
+
+    private UsernamePasswordAuthenticationToken buildAuthentication(SysUser user) {
+        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+
+        if (user.getRoleId() != null && user.getRoleId() == 1L) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        }
+
+        if (user.getRoleCode() != null && !user.getRoleCode().trim().isEmpty()) {
+            String normalizedRole = "ROLE_" + user.getRoleCode().trim().toUpperCase(Locale.ROOT);
+            SimpleGrantedAuthority authority = new SimpleGrantedAuthority(normalizedRole);
+            if (!authorities.contains(authority)) {
+                authorities.add(authority);
+            }
+        }
+
+        return new UsernamePasswordAuthenticationToken(user, null, authorities);
+    }
+
+    private void clearContexts() {
+        BaseContext.clear();
+        SecurityContextHolder.clearContext();
     }
 
     /**

@@ -65,8 +65,8 @@ DELETE FROM sys_user WHERE username IN ('manager', 'user01');
 
 -- 插入测试数据：创建一个部门经理账号
 INSERT INTO sys_user (username, password, name, role_id, role_code) VALUES
-('manager', '$2a$10$1nqhS2Db.x3xHV07zJP0ZOy8V4NQhBq5lkJUg3vx2ZOeLkqO3ZJ1i', '部门经理', 3, 'dept_manager');
+('manager', '$2a$12$B3vMXj3WNXuTTUD/R/QsXuMH/XegkB6CbWcd..AphAnXlSaC87RcK', '部门经理', 3, 'dept_manager');
 
 -- 插入测试数据：创建一个普通员工账号
 INSERT INTO sys_user (username, password, name, role_id, role_code) VALUES
-('user01', '$2a$10$1nqhS2Db.x3xHV07zJP0ZOy8V4NQhBq5lkJUg3vx2ZOeLkqO3ZJ1i', '普通员工', 4, 'user');
+('user01', '$2a$12$B3vMXj3WNXuTTUD/R/QsXuMH/XegkB6CbWcd..AphAnXlSaC87RcK', '普通员工', 4, 'user');

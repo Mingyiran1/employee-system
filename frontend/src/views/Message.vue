@@ -27,7 +27,8 @@
       </template>
 
       <!-- 消息列表 -->
-      <div v-if="messageList.length > 0" class="message-list">
+      <el-skeleton :rows="5" animated v-if="loading" />
+      <div v-else-if="messageList.length > 0" class="message-list">
         <div
           v-for="msg in messageList"
           :key="msg.id"
@@ -190,7 +191,8 @@ const fetchMessages = async () => {
 
     let records = res.data.records || []
 
-    // 前端过滤已读/未读
+    // 注意：前端过滤会导致分页总数与实际显示条数不一致
+    // 后续建议将filterType传给后端进行过滤
     if (filterType.value === 'unread') {
       records = records.filter(item => item.isRead === 0)
     } else if (filterType.value === 'read') {
@@ -202,6 +204,9 @@ const fetchMessages = async () => {
 
     // 获取真实的未读总数（不是当前页的）
     await fetchUnreadCount()
+  } catch (error) {
+    console.error('获取消息列表失败', error)
+    ElMessage.error('获取消息列表失败')
   } finally {
     loading.value = false
   }

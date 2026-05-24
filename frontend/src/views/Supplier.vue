@@ -20,8 +20,8 @@
 
     <el-card class="table-card">
       <div class="toolbar">
-        <el-button type="primary" :icon="Plus" @click="handleAdd">新增供应商</el-button>
-        <el-button type="danger" :icon="Delete" :disabled="!selectedIds.length" @click="handleBatchDelete">
+        <el-button v-if="isAdmin" type="primary" :icon="Plus" @click="handleAdd">新增供应商</el-button>
+        <el-button v-if="isAdmin" type="danger" :icon="Delete" :disabled="!selectedIds.length" @click="handleBatchDelete">
           批量删除
         </el-button>
       </div>
@@ -32,7 +32,7 @@
         @selection-change="handleSelectionChange"
         border
       >
-        <el-table-column type="selection" width="55" />
+        <el-table-column v-if="isAdmin" type="selection" width="55" />
         <el-table-column prop="name" label="供应商名称" min-width="150" />
         <el-table-column prop="contactName" label="联系人" width="100" />
         <el-table-column prop="contactPhone" label="联系电话" width="120" />
@@ -48,8 +48,9 @@
         </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link :icon="Edit" @click="handleEdit(row)">编辑</el-button>
-            <el-button type="danger" link :icon="Delete" @click="handleDelete(row)">删除</el-button>
+            <el-button v-if="isAdmin" type="primary" link :icon="Edit" @click="handleEdit(row)">编辑</el-button>
+            <el-button v-if="isAdmin" type="danger" link :icon="Delete" @click="handleDelete(row)">删除</el-button>
+            <span v-if="!isAdmin" style="color: #909399; font-size: 12px;">仅查看</span>
           </template>
         </el-table-column>
       </el-table>
@@ -110,11 +111,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Plus, Delete, Edit } from '@element-plus/icons-vue'
 import { getSupplierPage, addSupplier, updateSupplier, deleteSupplier } from '@/api/supplier'
 import { PHONE, PHONE_MESSAGE, EMAIL, EMAIL_MESSAGE } from '@/utils/regex'
+
+const userInfo = ref(JSON.parse(sessionStorage.getItem('user') || '{}'))
+const isAdmin = computed(() => userInfo.value.roleId === 1)
 
 const searchForm = reactive({
   name: '',
@@ -192,6 +196,10 @@ const handleSelectionChange = (selection) => {
 }
 
 const handleAdd = () => {
+  if (!isAdmin.value) {
+    ElMessage.warning('只有管理员可以添加供应商')
+    return
+  }
   isEdit.value = false
   dialogTitle.value = '新增供应商'
   resetForm()
@@ -199,6 +207,10 @@ const handleAdd = () => {
 }
 
 const handleEdit = (row) => {
+  if (!isAdmin.value) {
+    ElMessage.warning('只有管理员可以编辑供应商')
+    return
+  }
   isEdit.value = true
   dialogTitle.value = '编辑供应商'
   Object.assign(form, row)
@@ -206,6 +218,10 @@ const handleEdit = (row) => {
 }
 
 const handleDelete = (row) => {
+  if (!isAdmin.value) {
+    ElMessage.warning('只有管理员可以删除供应商')
+    return
+  }
   ElMessageBox.confirm(`确定要删除供应商【${row.name}】吗？`, '提示', {
     type: 'warning'
   }).then(async () => {
@@ -216,6 +232,10 @@ const handleDelete = (row) => {
 }
 
 const handleBatchDelete = () => {
+  if (!isAdmin.value) {
+    ElMessage.warning('只有管理员可以删除供应商')
+    return
+  }
   ElMessageBox.confirm(`确定要删除选中的 ${selectedIds.value.length} 家供应商吗？`, '提示', {
     type: 'warning'
   }).then(async () => {
@@ -228,6 +248,10 @@ const handleBatchDelete = () => {
 }
 
 const handleSubmit = async () => {
+  if (!isAdmin.value) {
+    ElMessage.warning('只有管理员可以保存供应商')
+    return
+  }
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) return
 

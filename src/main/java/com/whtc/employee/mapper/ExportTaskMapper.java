@@ -21,6 +21,12 @@ public interface ExportTaskMapper extends BaseMapper<ExportTask> {
     List<ExportTask> selectByUserId(@Param("userId") Long userId);
 
     /**
+     * 统计用户进行中（等待中/执行中）的任务数
+     */
+    @Select("SELECT COUNT(*) FROM export_task WHERE user_id = #{userId} AND status IN (0, 1)")
+    int countUserRunningTasks(@Param("userId") Long userId);
+
+    /**
      * 查询待处理的任务
      */
     @Select("SELECT * FROM export_task WHERE status = 0 ORDER BY create_time ASC LIMIT 10")

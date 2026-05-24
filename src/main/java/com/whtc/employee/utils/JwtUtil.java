@@ -3,13 +3,24 @@ package com.whtc.employee.utils;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 
+import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Map;
 
+/**
+ * JWT工具类 - JJWT 0.12.3 版本
+ */
 public class JwtUtil {
+
+    /**
+     * 生成SecretKey
+     */
+    private static SecretKey getSecretKey(String secretKey) {
+        return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
+    }
 
     /**
      * 生成jwt
@@ -18,24 +29,23 @@ public class JwtUtil {
      * @param secretKey jwt秘钥
      * @param ttlMillis jwt过期时间(毫秒)
      * @param claims    设置的信息
-     * @return
+     * @return JWT字符串
      */
     public static String createJWT(String secretKey, long ttlMillis, Map<String, Object> claims) {
-        // 指定签名的时候使用的签名算法
-        SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.HS256;
-
         // 生成JWT的时间
         long expMillis = System.currentTimeMillis() + ttlMillis;
         Date exp = new Date(expMillis);
 
+        SecretKey key = getSecretKey(secretKey);
+
         // 设置jwt的body
         JwtBuilder builder = Jwts.builder()
                 // 如果有私有声明，一定要先设置这个自己创建的私有的声明
-                .setClaims(claims)
+                .claims(claims)
                 // 设置签名使用的签名算法和秘钥
-                .signWith(signatureAlgorithm, secretKey.getBytes(StandardCharsets.UTF_8))
+                .signWith(key)
                 // 设置过期时间
-                .setExpiration(exp);
+                .expiration(exp);
 
         return builder.compact();
     }
@@ -45,16 +55,17 @@ public class JwtUtil {
      *
      * @param secretKey jwt秘钥
      * @param token     加密后的token
-     * @return
+     * @return Claims对象
      */
     public static Claims parseJWT(String secretKey, String token) {
-        // 得到DefaultJwtParser
-        Claims claims = Jwts.parser()
-                // 设置签名的秘钥
-                .setSigningKey(secretKey.getBytes(StandardCharsets.UTF_8))
-                // 设置需要解析的jwt
-                .parseClaimsJws(token).getBody();
-        return claims;
+        SecretKey key = getSecretKey(secretKey);
+
+        // 使用新的parserBuilder API
+        return Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 
 }

@@ -39,4 +39,9 @@ public interface SupplierService extends IService<Supplier> {
      * 批量删除供应商
      */
     void deleteByIds(List<Long> ids);
+
+    /**
+     * 获取所有供应商列表
+     */
+    List<SupplierDTO> listAll();
 }

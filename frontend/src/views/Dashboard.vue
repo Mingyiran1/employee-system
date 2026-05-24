@@ -1,14 +1,32 @@
 <template>
   <div class="dashboard-container">
+    <!-- 页面标题和操作栏 -->
+    <el-card class="header-card" shadow="never">
+      <div class="page-header">
+        <div class="header-left">
+          <h2 class="page-title">数据仪表盘</h2>
+          <span class="update-time">更新时间：{{ updateTime }}</span>
+        </div>
+        <el-button
+          type="primary"
+          :icon="Refresh"
+          :loading="loading"
+          @click="fetchDashboardData"
+        >
+          刷新数据
+        </el-button>
+      </div>
+    </el-card>
+
     <!-- 顶部统计卡片 -->
     <el-row :gutter="20" class="stat-cards">
       <el-col :span="6">
         <el-card class="stat-card" shadow="hover">
           <div class="stat-icon total">
-            <el-icon><User /></el-icon>
+            <el-icon><UserFilled /></el-icon>
           </div>
           <div class="stat-info">
-            <div class="stat-label">总员工数</div>
+            <div class="stat-label">保险员工总数</div>
             <div class="stat-value">{{ overview.totalEmployees || 0 }}人</div>
           </div>
         </el-card>
@@ -38,11 +56,11 @@
       <el-col :span="6">
         <el-card class="stat-card" shadow="hover">
           <div class="stat-icon pending">
-            <el-icon><DocumentChecked /></el-icon>
+            <el-icon><User /></el-icon>
           </div>
           <div class="stat-info">
-            <div class="stat-label">待审批</div>
-            <div class="stat-value warning">{{ overview.pendingApproval || 0 }}</div>
+            <div class="stat-label">在职人数</div>
+            <div class="stat-value warning">{{ overview.activeCount || 0 }}</div>
           </div>
         </el-card>
       </el-col>
@@ -54,7 +72,7 @@
         <el-card class="chart-card" shadow="hover">
           <template #header>
             <div class="card-header">
-              <span>部门分布</span>
+              <span>投保公司分布</span>
             </div>
           </template>
           <v-chart class="chart" :option="deptChartOption" autoresize />
@@ -64,7 +82,7 @@
         <el-card class="chart-card" shadow="hover">
           <template #header>
             <div class="card-header">
-              <span>性别比例</span>
+              <span>工种分布</span>
             </div>
           </template>
           <v-chart class="chart" :option="genderChartOption" autoresize />
@@ -78,7 +96,7 @@
         <el-card class="chart-card" shadow="hover">
           <template #header>
             <div class="card-header">
-              <span>入职趋势（近12个月）</span>
+              <span>保险员工入职趋势（近12个月）</span>
             </div>
           </template>
           <v-chart class="trend-chart" :option="trendChartOption" autoresize />
@@ -100,7 +118,7 @@ import {
   GridComponent
 } from 'echarts/components'
 import VChart from 'vue-echarts'
-import { User, Plus, Minus, DocumentChecked } from '@element-plus/icons-vue'
+import { User, UserFilled, Plus, Minus, Refresh } from '@element-plus/icons-vue'
 import { getDashboardAll } from '@/api/dashboard'
 import { ElMessage } from 'element-plus'
 
@@ -116,11 +134,14 @@ use([
 ])
 
 // 数据
+const loading = ref(false)
+const updateTime = ref('-')
+
 const overview = ref({
   totalEmployees: 0,
   newThisMonth: 0,
   leaveThisMonth: 0,
-  pendingApproval: 0
+  activeCount: 0
 })
 
 const deptDistribution = ref([])
@@ -289,6 +310,7 @@ const trendChartOption = ref({
 
 // 获取仪表盘数据
 const fetchDashboardData = async () => {
+  loading.value = true
   try {
     const res = await getDashboardAll()
     const data = res.data || {}
@@ -299,7 +321,7 @@ const fetchDashboardData = async () => {
         totalEmployees: data.employeeOverview.totalCount || 0,
         newThisMonth: data.employeeOverview.newThisMonthCount || 0,
         leaveThisMonth: data.employeeOverview.resignedThisMonthCount || 0,
-        pendingApproval: data.pendingApprovalCount || 0
+        activeCount: data.employeeOverview.activeCount || 0
       }
     }
 
@@ -312,15 +334,18 @@ const fetchDashboardData = async () => {
       deptChartOption.value.series[0].data = deptDistribution.value
     }
 
-    // 性别分布数据 - 适配后端的 genderDistribution 结构
+    // 工种分布数据 - 适配后端的 genderDistribution 结构（实际存储工种分布：一类/二类/三类）
     if (data.genderDistribution) {
-      const maleCount = data.genderDistribution.maleCount || 0
-      const femaleCount = data.genderDistribution.femaleCount || 0
-      // 始终显示男女两项，即使值为0
+      // 后端复用 GenderDistributionVO 存储工种分布：maleCount=一类, femaleCount=二类, unknownCount=三类
+      const type1Count = data.genderDistribution.maleCount || 0
+      const type2Count = data.genderDistribution.femaleCount || 0
+      const type3Count = data.genderDistribution.unknownCount || 0
+      // 构建工种分布数据
       genderDistribution.value = [
-        { name: '男', value: maleCount },
-        { name: '女', value: femaleCount }
-      ]
+        { name: '一类', value: type1Count },
+        { name: '二类', value: type2Count },
+        { name: '三类', value: type3Count }
+      ].filter(item => item.value > 0) // 只显示有数据的工种
       genderChartOption.value.series[0].data = [...genderDistribution.value]
     }
 
@@ -351,6 +376,17 @@ const fetchDashboardData = async () => {
   } catch (error) {
     ElMessage.error('获取仪表盘数据失败')
     console.error('获取仪表盘数据失败', error)
+  } finally {
+    loading.value = false
+    // 更新更新时间
+    const now = new Date()
+    updateTime.value = now.toLocaleString('zh-CN', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    })
   }
 }
 
@@ -362,6 +398,41 @@ onMounted(() => {
 <style scoped>
 .dashboard-container {
   padding: 20px;
+}
+
+/* 头部样式 */
+.header-card {
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+}
+
+.header-card :deep(.el-card__body) {
+  padding: 15px 20px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 20px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.update-time {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .stat-cards {

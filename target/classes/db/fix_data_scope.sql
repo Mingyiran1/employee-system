@@ -16,13 +16,14 @@ INSERT INTO department (id, name, parent_id, sort_order, create_time, update_tim
 -- 2. 清理并重新创建系统用户
 DELETE FROM sys_user WHERE id <= 6;
 
+-- 密码: 123456 (BCrypt加密)
 INSERT INTO sys_user (id, username, password, real_name, role_id, role_code, status, create_time, update_time) VALUES
-(1, 'admin', '123456', '超级管理员', 1, 'admin', 1, NOW(), NOW()),
-(2, 'zhangsan', '123456', '张三（技术总监）', 2, 'dept_CEO', 1, NOW(), NOW()),
-(3, 'lisi', '123456', '李四（技术经理）', 3, 'dept_manager', 1, NOW(), NOW()),
-(4, 'wangwu', '123456', '王五（普通员工）', 4, 'user', 1, NOW(), NOW()),
-(5, 'zhaoliu', '123456', '赵六（市场经理）', 3, 'dept_manager', 1, NOW(), NOW()),
-(6, 'sunqi', '123456', '孙七（市场专员）', 4, 'user', 1, NOW(), NOW());
+(1, 'admin', '$2a$12$B3vMXj3WNXuTTUD/R/QsXuMH/XegkB6CbWcd..AphAnXlSaC87RcK', '超级管理员', 1, 'admin', 1, NOW(), NOW()),
+(2, 'zhangsan', '$2a$12$B3vMXj3WNXuTTUD/R/QsXuMH/XegkB6CbWcd..AphAnXlSaC87RcK', '张三（技术总监）', 2, 'dept_CEO', 1, NOW(), NOW()),
+(3, 'lisi', '$2a$12$B3vMXj3WNXuTTUD/R/QsXuMH/XegkB6CbWcd..AphAnXlSaC87RcK', '李四（技术经理）', 3, 'dept_manager', 1, NOW(), NOW()),
+(4, 'wangwu', '$2a$12$B3vMXj3WNXuTTUD/R/QsXuMH/XegkB6CbWcd..AphAnXlSaC87RcK', '王五（普通员工）', 4, 'user', 1, NOW(), NOW()),
+(5, 'zhaoliu', '$2a$12$B3vMXj3WNXuTTUD/R/QsXuMH/XegkB6CbWcd..AphAnXlSaC87RcK', '赵六（市场经理）', 3, 'dept_manager', 1, NOW(), NOW()),
+(6, 'sunqi', '$2a$12$B3vMXj3WNXuTTUD/R/QsXuMH/XegkB6CbWcd..AphAnXlSaC87RcK', '孙七（市场专员）', 4, 'user', 1, NOW(), NOW());
 
 -- 3. 清理并重新创建员工数据（正确关联user_id和create_by）
 DELETE FROM employee WHERE id <= 10;
