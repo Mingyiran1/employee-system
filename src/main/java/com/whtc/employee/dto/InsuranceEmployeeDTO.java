@@ -55,6 +55,11 @@ public class InsuranceEmployeeDTO {
     private Integer status;
 
     /**
+     * 离职日期
+     */
+    private LocalDate leaveDate;
+
+    /**
      * 备注
      */
     private String remark;

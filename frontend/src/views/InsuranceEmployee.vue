@@ -194,7 +194,7 @@
           </el-input>
         </el-form-item>
         <el-form-item label="入职日期" prop="hireDate">
-          <el-date-picker v-model="form.hireDate" type="date" placeholder="请选择入职日期" style="width: 100%" />
+          <el-date-picker v-model="form.hireDate" type="date" value-format="YYYY-MM-DD" placeholder="请选择入职日期" style="width: 100%" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-select v-model="form.status" placeholder="请选择状态" @change="handleStatusChange" style="width: 100%">
@@ -203,7 +203,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="离职日期" prop="leaveDate" v-if="form.status === 2">
-          <el-date-picker v-model="form.leaveDate" type="date" placeholder="请选择离职日期" style="width: 100%" />
+          <el-date-picker v-model="form.leaveDate" type="date" value-format="YYYY-MM-DD" placeholder="请选择离职日期" style="width: 100%" />
         </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="form.remark" type="textarea" rows="3" placeholder="请输入备注" />
